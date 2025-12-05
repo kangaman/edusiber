@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A02: Cryptographic Failures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #0b0c10; color: #c5c6c7; height: 100vh; overflow: hidden; }
+        
+        /* Layout */
+        .main-container { display: flex; height: 100vh; }
+        .sidebar { width: 300px; background: #1f2833; border-right: 1px solid #45a29e; display: flex; flex-direction: column; }
+        .workspace { flex-grow: 1; padding: 20px; overflow-y: auto; background-image: radial-gradient(#1f2833 1px, transparent 1px); background-size: 20px 20px; }
+
+        /* Chat Area */
+        .chat-area { flex-grow: 1; padding: 20px; overflow-y: auto; font-size: 0.85rem; }
+        .chat-bubble { background: rgba(69, 162, 158, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 2px solid #66fcf1; animation: fadeIn 0.3s; }
+        
+        /* Tools Interface */
+        .crypto-tool {
+            max-width: 800px; margin: 0 auto;
+            background: #1f2833; border: 1px solid #45a29e;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
+            border-radius: 5px; overflow: hidden;
+        }
+        .tool-header {
+            background: #0b0c10; padding: 10px 20px; border-bottom: 1px solid #45a29e;
+            font-family: 'Share Tech Mono', monospace; color: #66fcf1;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .tool-body { padding: 30px; }
+
+        /* Typography & Elements */
+        h4, h5 { color: #fff; }
+        .code-display {
+            font-family: 'Share Tech Mono', monospace;
+            background: #000; color: #0f0; padding: 15px;
+            border: 1px solid #333; margin-bottom: 15px; word-break: break-all;
+        }
+        .btn-cyber {
+            background: transparent; border: 1px solid #66fcf1; color: #66fcf1;
+            font-family: 'Share Tech Mono', monospace; transition: all 0.3s;
+        }
+        .btn-cyber:hover { background: #66fcf1; color: #0b0c10; box-shadow: 0 0 10px #66fcf1; }
+        
+        .hidden { display: none !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="sidebar">
+        <div class="p-3 border-bottom border-secondary">
+            <h6 class="mb-0 text-info"><i class="fas fa-key me-2"></i>CRYPTO ANALYZER</h6>
+            <small class="text-muted">Module A02</small>
+        </div>
+        <div class="chat-area" id="chatBox">
+            </div>
+        <div class="p-3 border-top border-secondary">
+            <a href="../index.html" class="btn btn-outline-light btn-sm w-100">
+                <i class="fas fa-arrow-left me-2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="workspace">
+        
+        <div id="stage1" class="crypto-tool">
+            <div class="tool-header">
+                <span><i class="fas fa-unlock me-2"></i>DECODER v1.0</span>
+                <span class="badge bg-warning text-dark">Misi 1: Session Hijacking</span>
+            </div>
+            <div class="tool-body">
+                <p>Anda mencegat sebuah <strong>Session Token</strong> dari browser korban. Developer mengira ini aman karena teksnya "tidak bisa dibaca".</p>
+                
+                <label class="small text-muted mb-1">Intercepted Data:</label>
+                <div class="code-display" id="cipher1">dXNlcklkPTEwJmlzQWRtaW49dHJ1ZQ==</div>
+
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <select class="form-select bg-dark text-light border-secondary" id="algoSelect1">
+                            <option value="aes">Decrypt AES-256 (Butuh Key)</option>
+                            <option value="rsa">Decrypt RSA (Butuh Private Key)</option>
+                            <option value="base64">Base64 Decode (Tanpa Key)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-cyber w-100" onclick="crackStage1()">PROSES DATA</button>
+                    </div>
+                </div>
+                <div id="result1" class="mt-3 text-info font-monospace hidden"></div>
+            </div>
+        </div>
+
+        <div id="stage2" class="crypto-tool mt-5 hidden">
+            <div class="tool-header">
+                <span><i class="fas fa-database me-2"></i>HASH CRACKER v2.0</span>
+                <span class="badge bg-danger">Misi 2: Database Leak</span>
+            </div>
+            <div class="tool-body">
+                <p>Bagus! Token tadi memberi kita akses ke database. Namun, password user disimpan dalam format <strong>MD5 Hash</strong>.</p>
+                <p class="small text-muted">MD5 adalah fungsi satu arah (hashing), tapi karena algoritma ini usang dan cepat, kita bisa mencocokkannya dengan kamus (Rainbow Table).</p>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-dark table-sm border border-secondary small">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Stored Password (MD5)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>admin</td>
+                                <td class="text-warning">21232f297a57a5a743894a0e4a801fc3</td>
+                                <td><button class="btn btn-xs btn-outline-danger" onclick="copyHash('21232f297a57a5a743894a0e4a801fc3')">Copy</button></td>
+                            </tr>
+                            <tr>
+                                <td>staff</td>
+                                <td class="text-muted">... (abaikan)</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <label class="small text-muted">Paste Hash Target:</label>
+                <div class="input-group mb-3">
+                    <input type="text" id="hashInput" class="form-control bg-dark text-light border-secondary" placeholder="Paste hash admin disini...">
+                    <button class="btn btn-cyber" onclick="crackStage2()">CRACK HASH</button>
+                </div>
+                
+                <div id="result2" class="alert alert-dark border-success text-success hidden">
+                    <i class="fas fa-check-circle me-2"></i> PASSWORD FOUND: <strong id="crackedPass" class="fs-5"></strong>
+                </div>
+            </div>
+        </div>
+
+        <div id="stageWin" class="text-center mt-5 hidden">
+            <i class="fas fa-lock-open fa-4x text-info mb-3"></i>
+            <h3>SYSTEM COMPROMISED</h3>
+            <p class="text-muted">Anda telah memahami perbedaan Encoding, Hashing, dan Enkripsi.</p>
+            <div class="d-inline-block text-start bg-dark p-4 rounded border border-info">
+                <h6 class="text-info">Pelajaran Penting:</h6>
+                <ul class="small mb-0 text-secondary">
+                    <li><strong>Encoding (Base64)</strong> bukan enkripsi. Ini hanya mengubah format data dan bisa dibalik oleh siapa saja.</li>
+                    <li><strong>Hashing (MD5/SHA1)</strong> yang usang tidak aman. Gunakan algoritma lambat seperti <em>Argon2</em> atau <em>Bcrypt</em>.</li>
+                    <li>Jangan simpan data sensitif tanpa Salt.</li>
+                </ul>
+            </div>
+            <br>
+            <button onclick="saveAndExit()" class="btn btn-cyber mt-4 px-5">SIMPAN & SELESAI</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- CHAT HELPER ---
+    function addChat(msg) {
+        const box = document.getElementById('chatBox');
+        box.innerHTML += `<div class="chat-bubble">${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // --- INIT ---
+    setTimeout(() => {
+        addChat("Selamat datang, Agent.");
+        addChat("Sistem kriptografi sering gagal karena developer menggunakan algoritma usang.");
+        addChat("Lihat Misi 1. Ada teks aneh yang diakhiri tanda '=='. Itu ciri khas <strong>Base64</strong>.");
+    }, 500);
+
+    // --- STAGE 1: BASE64 ---
+    function crackStage1() {
+        const algo = document.getElementById('algoSelect1').value;
+        const cipher = "dXNlcklkPTEwJmlzQWRtaW49dHJ1ZQ=="; // "userId=10&isAdmin=true"
+        const resultBox = document.getElementById('result1');
+
+        if (algo === 'base64') {
+            // Real decoding using JS atob()
+            try {
+                const decoded = atob(cipher);
+                resultBox.innerHTML = `<span class="text-success">SUCCESS!</span> Data Terbaca: <strong>${decoded}</strong>`;
+                resultBox.classList.remove('hidden');
+                
+                addChat("Kerja bagus! Ternyata itu hanya Base64 Encoding.");
+                addChat("Isinya <code>isAdmin=true</code>. Bahaya sekali jika data sensitif hanya di-encode.");
+                
+                setTimeout(() => {
+                    document.getElementById('stage2').classList.remove('hidden');
+                    // Scroll ke bawah
+                    document.getElementById('stage2').scrollIntoView({behavior: "smooth"});
+                    addChat("Sekarang Misi 2. Kita dapat akses ke database password.");
+                    addChat("Password admin berbentuk Hash MD5. Coba copy hash-nya dan masukkan ke alat Cracking.");
+                }, 2000);
+            } catch (e) {
+                resultBox.innerHTML = "Error decoding.";
+            }
+        } else {
+            resultBox.innerHTML = `<span class="text-danger">GAGAL.</span> Algoritma ${algo.toUpperCase()} membutuhkan Kunci (Key) yang tidak kita miliki.`;
+            resultBox.classList.remove('hidden');
+            addChat("Ingat, Encoding tidak butuh kunci. Enkripsi butuh kunci. Coba opsi lain.");
+        }
+    }
+
+    // --- STAGE 2: MD5 CRACKING ---
+    function copyHash(hash) {
+        document.getElementById('hashInput').value = hash;
+    }
+
+    function crackStage2() {
+        const input = document.getElementById('hashInput').value.trim();
+        const targetHash = "21232f297a57a5a743894a0e4a801fc3"; // MD5 dari "admin"
+        
+        // Simulasi Loading
+        const btn = document.querySelector('#stage2 button.btn-cyber');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SEARCHING RAINBOW TABLE...';
+        
+        setTimeout(() => {
+            if (input === targetHash) {
+                document.getElementById('result2').classList.remove('hidden');
+                document.getElementById('crackedPass').innerText = "admin"; // Jawaban
+                btn.innerHTML = 'CRACK HASH';
+                
+                addChat("BOOM! Hash ditemukan di database Rainbow Table.");
+                addChat("Password aslinya adalah 'admin'.");
+                
+                setTimeout(() => {
+                    document.getElementById('stageWin').classList.remove('hidden');
+                    document.getElementById('stageWin').scrollIntoView({behavior: "smooth"});
+                }, 1500);
+            } else {
+                alert("Hash tidak cocok atau tidak ditemukan di database simpel ini.");
+                btn.innerHTML = 'CRACK HASH';
+            }
+        }, 1000);
+    }
+
+    function saveAndExit() {
+        localStorage.setItem('sim_a02', 'done');
+        window.location.href = '../index.html';
+    }
+</script>
+
+</body>
+</html>
