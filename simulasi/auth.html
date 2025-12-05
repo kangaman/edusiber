@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A07: Auth Failures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #be123c; border: 1px solid #f43f5e; color: #ffe4e6; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #f43f5e; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
+        .code-snippet { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
+
+        /* MAIN AREA */
+        .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; }
+
+        /* TARGET BROWSER */
+        .browser { background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 50%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #475569; position: relative; }
+        .browser-bar { background: #f1f5f9; padding: 8px 15px; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; }
+        .url-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 15px; flex-grow: 1; margin-left: 15px; font-size: 0.85rem; color: #64748b; font-family: monospace; }
+        .app-view { flex-grow: 1; background: #f8fafc; padding: 20px; overflow-y: auto; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .login-box { width: 320px; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .response-msg { font-size: 0.8rem; margin-top: 10px; text-align: center; display: none; }
+
+        /* PIN INPUT UI */
+        .pin-display { font-size: 2rem; letter-spacing: 10px; text-align: center; margin-bottom: 15px; font-family: monospace; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: #f9f9f9; }
+
+        /* ATTACK TOOL */
+        .attack-tool { flex: 1; background: #020617; border: 1px solid #1e293b; border-radius: 8px; display: flex; flex-direction: column; font-family: 'JetBrains Mono', monospace; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+        .tool-header { background: #1e293b; padding: 10px; color: #f43f5e; font-size: 0.8rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+        .tool-body { padding: 20px; display: flex; gap: 20px; height: 100%; }
+        
+        .config-panel { width: 40%; border-right: 1px solid #334155; padding-right: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .log-panel { width: 60%; background: #000; border-radius: 5px; padding: 10px; overflow-y: auto; font-size: 0.8rem; color: #22c55e; max-height: 200px; }
+        
+        .tool-input { background: #0f172a; border: 1px solid #334155; color: white; padding: 5px; width: 100%; font-size: 0.8rem; }
+        .wordlist-select { background: #0f172a; border: 1px solid #334155; color: white; padding: 5px; width: 100%; font-size: 0.8rem; height: 30px; }
+
+        .status-success { color: #22c55e; font-weight: bold; }
+        .status-fail { color: #ef4444; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-danger"><i class="fas fa-user-lock me-2"></i>Auth Failures</h5>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/6</span></small>
+        </div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Bantuan / Hint
+                </button>
+                <div id="hintBox" class="hint-box"></div>
+            </div>
+
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold">Rekomendasi Keamanan</h6>
+                <div class="bg-black p-3 rounded border border-success small font-monospace text-light mb-3">
+                    <span class="text-secondary">// 1. No Username Enumeration</span><br>
+                    Respon harus generik: "Email reset terkirim (jika akun ada)."<br><br>
+                    <span class="text-secondary">// 2. Account Lockout</span><br>
+                    Kunci akun setelah 5x gagal.<br><br>
+                    <span class="text-success">// 3. Strong 2FA</span><br>
+                    Gunakan Authenticator App, bukan PIN statis.
+                </div>
+                <button onclick="finishLab()" class="btn btn-success w-100 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary">
+            <a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="main-area">
+        
+        <div class="browser">
+            <div class="browser-bar">
+                <div class="d-flex gap-1 me-2"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span></div>
+                <div class="url-box" id="urlDisplay">admin.portal.local/login</div>
+            </div>
+            <div class="app-view">
+                
+                <div id="pageLogin" class="login-box">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                        <h5 class="fw-bold mt-2">Admin Portal</h5>
+                    </div>
+                    <div class="mb-2"><label class="small fw-bold">Username</label><input type="text" id="targetUser" class="form-control form-control-sm"></div>
+                    <div class="mb-3"><label class="small fw-bold">Password</label><input type="password" id="targetPass" class="form-control form-control-sm"></div>
+                    <button onclick="manualLogin()" class="btn btn-primary w-100 btn-sm fw-bold">Login</button>
+                    <div class="text-center mt-2"><a href="#" onclick="showPage('pageForgot')" class="small">Lupa Password?</a></div>
+                    <div id="loginMsg" class="response-msg text-danger"></div>
+                </div>
+
+                <div id="pageForgot" class="login-box" style="display:none;">
+                    <div class="text-center mb-3"><h6 class="fw-bold">Recovery Akun</h6><p class="small text-muted">Cek ketersediaan username.</p></div>
+                    <input type="text" id="checkUser" class="form-control form-control-sm mb-3" placeholder="Username...">
+                    <button onclick="checkUsername()" class="btn btn-secondary w-100 btn-sm">Cek User</button>
+                    <div id="forgotMsg" class="response-msg"></div>
+                    <div class="text-center mt-2"><a href="#" onclick="showPage('pageLogin')" class="small">Kembali</a></div>
+                </div>
+
+                <div id="pagePin" class="login-box" style="display:none;">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-lock fa-2x text-warning"></i>
+                        <h6 class="fw-bold mt-2">Security PIN</h6>
+                        <p class="small text-muted">Masukkan 4 digit PIN tambahan.</p>
+                    </div>
+                    <input type="text" id="pinInput" class="form-control text-center letter-spacing-2 mb-3" maxlength="4" placeholder="----">
+                    <button onclick="checkPin()" class="btn btn-warning w-100 btn-sm fw-bold">Verifikasi</button>
+                    <div id="pinMsg" class="response-msg text-danger"></div>
+                </div>
+
+                <div id="pageSuccess" class="text-center p-5" style="display:none;">
+                    <i class="fas fa-unlock-alt fa-4x text-success mb-3"></i>
+                    <h2 class="fw-bold">ACCESS GRANTED</h2>
+                    <p>Selamat! Anda telah menguasai sistem.</p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="attack-tool">
+            <div class="tool-header">
+                <span><i class="fas fa-terminal me-2"></i>BRUTE FORCE CONSOLE</span>
+                <span id="toolStatus" class="badge bg-secondary">IDLE</span>
+            </div>
+            <div class="tool-body">
+                <div class="config-panel">
+                    <label class="small text-secondary fw-bold">Target:</label>
+                    <input type="text" id="toolTarget" class="tool-input mb-2" placeholder="Username..." disabled>
+                    
+                    <label class="small text-secondary fw-bold">Mode:</label>
+                    <select id="toolMode" class="wordlist-select mb-2" onchange="updateToolUI()">
+                        <option value="pass">Password Attack (Wordlist)</option>
+                        <option value="pin">PIN Cracking (4-Digit)</option>
+                    </select>
+
+                    <label class="small text-secondary fw-bold">Wordlist:</label>
+                    <select id="toolWordlist" class="wordlist-select mb-3" disabled>
+                        <option value="">-- Select --</option>
+                        <option value="rockyou">rockyou.txt (Top 1000)</option>
+                        <option value="pins">4-digit-pins.txt (0000-9999)</option>
+                    </select>
+                    
+                    <button id="btnAttack" onclick="startAttack()" class="btn btn-danger btn-sm w-100 fw-bold" disabled>START ATTACK</button>
+                </div>
+                <div class="log-panel" id="attackLog">
+                    <span class="text-secondary">> System ready...</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- GAME DATA ---
+    const targetUser = "administrator";
+    const targetPass = "dragon";
+    const targetPin = "1337";
+    let level = 1;
+
+    // --- MISSIONS ---
+    const missions = [
+        {},
+        {
+            badge: "Tahap 1: Reconnaissance",
+            title: "Enumerasi Username",
+            desc: "Fitur 'Lupa Password' seringkali membocorkan apakah sebuah username valid atau tidak (User Enumeration).<br><br>1. Masuk ke menu 'Lupa Password'.<br>2. Coba: <code>admin</code> (Invalid).<br>3. Coba: <code>administrator</code> (Valid).",
+            hint: "Jika respon server berbeda (Merah vs Hijau), berarti sistem rentan."
+        },
+        {
+            badge: "Tahap 2: Manual Testing",
+            title: "Cek Password Default",
+            desc: "Username ditemukan: <strong>administrator</strong>.<br>Sebelum menggunakan alat otomatis, hacker selalu mencoba password default secara manual.<br><br>Kembali ke Login. Coba username <code>administrator</code> dengan password <code>admin123</code> atau <code>password</code>.",
+            hint: "Cobalah login manual. Pasti gagal, tapi ini prosedur standar."
+        },
+        {
+            badge: "Tahap 3: Setup Tool",
+            title: "Konfigurasi Brute Force",
+            desc: "Manual gagal. Waktunya otomatisasi.<br><br>Di panel bawah (Attack Tool):<br>1. Isi Target: <code>administrator</code><br>2. Mode: <strong>Password Attack</strong><br>3. Wordlist: <strong>rockyou.txt</strong>",
+            hint: "Pastikan semua kolom terisi sebelum tombol Start aktif."
+        },
+        {
+            badge: "Tahap 4: Password Cracking",
+            title: "Menjalankan Serangan",
+            desc: "Konfigurasi siap. Klik <strong>START ATTACK</strong>.<br><br>Alat akan mencoba ratusan password per detik hingga menemukan yang cocok.",
+            hint: "Tunggu hingga muncul tulisan hijau [SUCCESS]."
+        },
+        {
+            badge: "Tahap 5: 2FA Bypass",
+            title: "PIN Cracking",
+            desc: "Password didapat: <strong>dragon</strong>. Coba login manual.<br><br>Ups! Ada PIN 4 digit. Karena PIN hanya angka, kita bisa menjebolnya dengan cepat.<br><br>Di Attack Tool:<br>1. Ubah Mode ke <strong>PIN Cracking</strong>.<br>2. Klik Start Attack lagi.",
+            hint: "Jangan lupa login dulu dengan password 'dragon' untuk melihat halaman PIN, baru jalankan tool."
+        },
+        {
+            badge: "Tahap 6: Full Access",
+            title: "Login Final",
+            desc: "PIN ditemukan: <strong>1337</strong>.<br><br>Masukkan PIN tersebut ke halaman login untuk mendapatkan akses penuh ke sistem.",
+            hint: "Masukkan 1337 lalu klik Verifikasi."
+        },
+        { badge: "Mission Complete", title: "Sistem Dikuasai", desc: "Anda berhasil melewati 2 lapisan keamanan karena password lemah dan PIN pendek.", hint: "Selesai." }
+    ];
+
+    function renderMission() {
+        if(level > 6) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/6";
+        document.getElementById('missionDisplay').innerHTML = `<span class="level-badge">${m.badge}</span><div class="mission-card"><h5 class="fw-bold mb-3 text-white">${m.title}</h5><p class="small text-light opacity-75">${m.desc}</p></div>`;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+        
+        // Unlock Logic
+        if(level >= 3) {
+            document.getElementById('toolUser').disabled = false;
+            document.getElementById('toolTarget').disabled = false;
+            document.getElementById('toolWordlist').disabled = false;
+        }
+    }
+
+    function toggleHint() {
+        const box = document.getElementById('hintBox');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // --- BROWSER NAVIGATION ---
+    function showPage(pageId) {
+        ['pageLogin', 'pageForgot', 'pagePin', 'pageSuccess'].forEach(p => document.getElementById(p).style.display = 'none');
+        document.getElementById(pageId).style.display = 'block';
+        // Reset messages
+        document.querySelectorAll('.response-msg').forEach(el => el.style.display = 'none');
+    }
+
+    // --- STAGE 1: ENUMERATION ---
+    function checkUsername() {
+        const u = document.getElementById('checkUser').value.toLowerCase();
+        const msg = document.getElementById('forgotMsg');
+        msg.style.display = 'block';
+        
+        if(u === targetUser) {
+            msg.className = "response-msg text-success fw-bold";
+            msg.innerHTML = "Link reset terkirim ke email!";
+            if(level === 1) { level = 2; renderMission(); }
+        } else {
+            msg.className = "response-msg text-danger";
+            msg.innerHTML = "Error: User tidak ditemukan.";
+        }
+    }
+
+    // --- STAGE 2 & 6: MANUAL LOGIN ---
+    function manualLogin() {
+        const u = document.getElementById('targetUser').value;
+        const p = document.getElementById('targetPass').value;
+        const msg = document.getElementById('loginMsg');
+        msg.style.display = 'block';
+
+        if(u === targetUser && p === targetPass) {
+            showPage('pagePin');
+            if(level === 2) { level = 3; renderMission(); } // Failed manual, move to tool setup
+            if(level === 4) { level = 5; renderMission(); } // Got pass, now pin
+        } else {
+            msg.innerHTML = "Login Gagal: Username/Password salah.";
+            if(level === 2) { 
+                // Simulasi gagal manual -> trigger level 3
+                setTimeout(() => { alert("Manual gagal. Mari gunakan alat Brute Force."); level = 3; renderMission(); }, 500);
+            }
+        }
+    }
+
+    // --- STAGE 5 & 6: PIN ---
+    function checkPin() {
+        const pin = document.getElementById('pinInput').value;
+        if(pin === targetPin) {
+            showPage('pageSuccess');
+            if(level === 5 || level === 6) { 
+                level = 7; 
+                renderMission(); 
+                document.getElementById('remediationSection').style.display = 'block';
+                document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+            }
+        } else {
+            document.getElementById('pinMsg').style.display = 'block';
+            document.getElementById('pinMsg').innerText = "PIN Salah.";
+        }
+    }
+
+    // --- ATTACK TOOL LOGIC ---
+    function updateToolUI() {
+        // Auto select wordlist based on mode to help user
+        const mode = document.getElementById('toolMode').value;
+        const wl = document.getElementById('toolWordlist');
+        if(mode === 'pass') wl.value = 'rockyou'; 
+        else wl.value = 'pins';
+        
+        // Enable button logic
+        checkConfig();
+    }
+
+    // Listeners for config
+    document.getElementById('toolTarget').addEventListener('input', checkConfig);
+    document.getElementById('toolWordlist').addEventListener('change', checkConfig);
+
+    function checkConfig() {
+        const t = document.getElementById('toolTarget').value;
+        const w = document.getElementById('toolWordlist').value;
+        const btn = document.getElementById('btnAttack');
+        
+        if(t === targetUser && w !== "") btn.disabled = false;
+        else btn.disabled = true;
+    }
+
+    function startAttack() {
+        const mode = document.getElementById('toolMode').value;
+        const log = document.getElementById('attackLog');
+        const status = document.getElementById('toolStatus');
+        
+        status.className = "badge bg-warning text-dark";
+        status.innerText = "RUNNING";
+        log.innerHTML = "";
+        
+        let attempts = [];
+        let success = "";
+        
+        if(mode === 'pass') {
+            attempts = ["123456", "password", "admin123", "qwerty", "iloveyou", "dragon"];
+            success = targetPass;
+        } else {
+            attempts = ["0000", "1234", "1111", "2020", "2025", "1337"];
+            success = targetPin;
+        }
+
+        let i = 0;
+        const interval = setInterval(() => {
+            const current = attempts[i];
+            
+            if(current === success) {
+                clearInterval(interval);
+                log.innerHTML += `<div class='status-success'>[SUCCESS] FOUND: ${current}</div>`;
+                status.className = "badge bg-success";
+                status.innerText = "CRACKED";
+                
+                if(level === 3 && mode === 'pass') { level = 4; renderMission(); }
+                if(level === 5 && mode === 'pin') { level = 6; renderMission(); }
+            } else {
+                log.innerHTML += `<div class='status-fail'>[FAIL] Trying: ${current}</div>`;
+            }
+            log.scrollTop = log.scrollHeight;
+            i++;
+        }, 400);
+    }
+
+    function finishLab() { localStorage.setItem('sim_a07', 'done'); window.location.href = '../index.html'; }
+
+    renderMission();
+</script>
+</body>
+</html>
