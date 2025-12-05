@@ -91,6 +91,45 @@
         @keyframes pulseGreen { 0% { color: #22c55e; } 50% { color: #86efac; } 100% { color: #22c55e; } }
     </style>
 </head>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 1. Blokir Klik Kanan (Context Menu)
+        // Ini mencegah user klik kanan -> "View Page Source" atau "Inspect"
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // 2. Blokir Shortcut Keyboard Developer
+        document.onkeydown = function(e) {
+            // F12 (DevTools)
+            if(e.keyCode == 123) {
+                return false;
+            }
+            
+            // Ctrl+U (View Source)
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+            
+            // Ctrl+Shift+I (DevTools)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            
+            // Ctrl+Shift+J (Console)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+
+            // Ctrl+S (Save Page) - Mencegah download source code mudah
+            if(e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) {
+                return false;
+            }
+        };
+    });
+</script>
 <body>
 
 <div class="lab-wrapper">
