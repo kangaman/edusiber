@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A05: Security Misconfiguration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #059669; border: 1px solid #10b981; color: #d1fae5; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #10b981; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; }
+        .code-snippet { font-family: 'Fira Code', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #cbd5e1; }
+
+        /* MAIN AREA */
+        .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; }
+        
+        /* BROWSER */
+        .browser { width: 100%; max-width: 900px; background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 600px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #475569; }
+        .browser-bar { background: #f1f5f9; padding: 10px 15px; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; }
+        .url-container { flex-grow: 1; background: #fff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 5px 15px; display: flex; align-items: center; margin-left: 15px; }
+        .url-prefix { color: #94a3b8; font-family: 'Fira Code', monospace; font-size: 0.9rem; margin-right: 2px; }
+        .url-input { border: none; outline: none; width: 100%; font-family: 'Fira Code', monospace; color: #334155; font-size: 0.9rem; font-weight: 600; }
+        
+        .app-view { flex-grow: 1; overflow-y: auto; background: #f8fafc; position: relative; }
+        .raw-file { background: #1e1e1e; color: #d4d4d4; padding: 20px; font-family: 'Fira Code', monospace; height: 100%; white-space: pre-wrap; }
+        .dir-list a { display: block; padding: 5px 0; color: #2563eb; text-decoration: none; font-family: 'Fira Code', monospace; }
+        .dir-list a:hover { text-decoration: underline; }
+
+        /* TERMINAL */
+        .terminal { width: 100%; max-width: 900px; background: #000; color: #22c55e; font-family: 'Fira Code', monospace; font-size: 0.85rem; border-radius: 8px; border: 1px solid #334155; height: 150px; display: flex; flex-direction: column; }
+        .terminal-header { background: #1e293b; padding: 5px 15px; font-size: 0.75rem; border-bottom: 1px solid #334155; color: #94a3b8; }
+        .terminal-body { padding: 15px; overflow-y: auto; flex-grow: 1; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-success"><i class="fas fa-cogs me-2"></i>Misconfiguration</h5>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/4</span></small>
+        </div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Hint / Bantuan
+                </button>
+                <div id="hintBox" class="hint-box"></div>
+            </div>
+
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold">Analisis & Pencegahan</h6>
+                
+                <div class="bg-black p-3 rounded border border-secondary small font-monospace text-light mb-3">
+                    <span class="text-secondary">// 1. Matikan Directory Indexing (.htaccess)</span><br>
+                    <span class="text-danger">Options -Indexes</span><br><br>
+                    <span class="text-secondary">// 2. Jangan Tinggalkan File .bak</span><br>
+                    Hapus file backup dari folder public_html.<br><br>
+                    <span class="text-secondary">// 3. Block Robots.txt (Optional)</span><br>
+                    Jangan menaruh path sensitif di robots.txt, karena hacker juga membacanya.
+                </div>
+                <button onclick="finishLab()" class="btn btn-success w-100 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary">
+            <a href="../index.html" class="text-white-50 text-decoration-none small">Kembali ke Dashboard</a>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="browser">
+            <div class="browser-bar">
+                <div class="d-flex gap-1"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span><span class="rounded-circle bg-success" style="width:10px;height:10px"></span></div>
+                <div class="url-container">
+                    <span class="url-prefix">company-server.local</span>
+                    <input type="text" id="urlInput" class="url-input" value="/" onkeypress="handleEnter(event)">
+                </div>
+                <button onclick="navigate()" class="btn btn-sm btn-light border ms-2"><i class="fas fa-arrow-right"></i></button>
+            </div>
+            
+            <div class="app-view" id="browserView">
+                </div>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-header">SERVER ACCESS LOG</div>
+            <div class="terminal-body" id="serverLog">
+                [SYSTEM] Server ready.<br>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- STATE ---
+    let level = 1;
+
+    const missions = [
+        {},
+        {
+            badge: "Tahap 1: Reconnaissance",
+            title: "Mencari Jejak Robot",
+            desc: "Kita menghadapi halaman login yang terkunci. Tugas Anda adalah mencari informasi tersembunyi.<br><br>Setiap website biasanya memiliki file konfigurasi untuk mesin pencari (bot). File ini seringkali membocorkan nama folder yang ingin disembunyikan admin.<br><br><strong>Tugas:</strong> Akses file <code>/robots.txt</code> di browser.",
+            hint: "Klik pada URL bar di atas, ketik <code>/robots.txt</code> setelah alamat server, lalu tekan Enter."
+        },
+        {
+            badge: "Tahap 2: Directory Walking",
+            title: "Folder Tersembunyi",
+            desc: "Bagus! Anda menemukan file <code>robots.txt</code>.<br><br>Di dalamnya tertulis <code>Disallow: /dev_backup</code>. Ini artinya admin melarang Google mengindeks folder tersebut.<br><br><strong>Tugas:</strong> Akses folder rahasia tersebut di browser.",
+            hint: "Ubah URL menjadi <code>/dev_backup</code> lalu tekan Enter."
+        },
+        {
+            badge: "Tahap 3: Information Disclosure",
+            title: "Membaca Backup File",
+            desc: "Aduh! Admin lupa mematikan fitur <strong>Directory Listing</strong>. Anda bisa melihat daftar file di folder tersebut.<br><br>Ada file bernama <code>db_connect.php.bak</code>. Ekstensi <code>.bak</code> menandakan file backup yang biasanya bisa dibaca langsung sebagai teks (source code tidak dieksekusi).<br><br><strong>Tugas:</strong> Klik file tersebut untuk membaca isinya.",
+            hint: "Klik link <code>db_connect.php.bak</code> yang muncul di layar browser."
+        },
+        {
+            badge: "Tahap 4: Exploitation",
+            title: "Login Admin",
+            desc: "JACKPOT! Anda menemukan kredensial database yang di-hardcode: <br>User: <code>admin</code><br>Pass: <code>RaHaS1a2025!</code><br><br><strong>Tugas:</strong> Kembali ke halaman utama (<code>/</code>), lalu login menggunakan password yang Anda curi.",
+            hint: "1. Ketik <code>/</code> di URL bar.<br>2. Masukkan username dan password yang baru saja Anda temukan."
+        },
+        {
+            badge: "Mission Complete",
+            title: "Server Compromised",
+            desc: "<strong>AKSES DITERIMA!</strong><br>Hanya karena satu file backup yang tertinggal dan kesalahan konfigurasi permission folder, seluruh sistem berhasil diambil alih.",
+            hint: "Selesai."
+        }
+    ];
+
+    // --- VIRTUAL FILESYSTEM ---
+    const routes = {
+        "/": {
+            type: "html",
+            content: `
+                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                    <div class="text-center p-5 border rounded bg-white shadow-sm" style="width: 350px;">
+                        <i class="fas fa-server fa-3x text-secondary mb-3"></i>
+                        <h4 class="mb-3">Corporate Login</h4>
+                        <div class="mb-3 text-start">
+                            <label class="small fw-bold">Username</label>
+                            <input type="text" id="loginUser" class="form-control" placeholder="admin">
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label class="small fw-bold">Password</label>
+                            <input type="password" id="loginPass" class="form-control">
+                        </div>
+                        <button onclick="attemptLogin()" class="btn btn-primary w-100">Sign In</button>
+                        <p id="loginMsg" class="text-danger small mt-2" style="display:none;">Access Denied</p>
+                    </div>
+                </div>
+            `
+        },
+        "/robots.txt": {
+            type: "raw",
+            content: "User-agent: *\nDisallow: /admin\nDisallow: /dev_backup\n\n# Note: Don't forget to delete /dev_backup after migration!"
+        },
+        "/dev_backup": {
+            type: "dir",
+            content: [
+                { name: "Parent Directory", href: "/" },
+                { name: "db_connect.php.bak", href: "/dev_backup/db_connect.php.bak" },
+                { name: "logo.png", href: "#" },
+                { name: "notes.txt", href: "#" }
+            ]
+        },
+        "/dev_backup/db_connect.php.bak": {
+            type: "raw",
+            content: `<?php
+// Database Configuration
+// TODO: Move this to .env file later
+
+$db_host = 'localhost';
+$db_user = 'admin';
+$db_pass = 'RaHaS1a2025!'; // <-- PASSWORD FOUND!
+$db_name = 'corp_data';
+
+$conn = new mysqli($db_host, $db_user, $db_pass);
+?>`
+        },
+        "/admin": {
+            type: "html",
+            content: `<div class="p-5 text-center"><h1>403 Forbidden</h1><p>You don't have permission to access /admin.</p></div>`
+        }
+    };
+
+    // --- FUNCTIONS ---
+
+    function handleEnter(e) {
+        if(e.key === 'Enter') navigate();
+    }
+
+    function navigate() {
+        const input = document.getElementById('urlInput').value.trim();
+        const view = document.getElementById('browserView');
+        const log = document.getElementById('serverLog');
+
+        log.innerHTML += `[REQUEST] GET ${input}<br>`;
+
+        if (routes[input]) {
+            const page = routes[input];
+            log.innerHTML += `[RESPONSE] 200 OK<br>`;
+
+            // Render Logic
+            if (page.type === "html") {
+                view.innerHTML = page.content;
+            } else if (page.type === "raw") {
+                view.innerHTML = `<div class="raw-file">${escapeHtml(page.content)}</div>`;
+            } else if (page.type === "dir") {
+                let listHtml = `<div class="p-4"><h3>Index of ${input}</h3><hr><div class="dir-list">`;
+                page.content.forEach(f => {
+                    // Special click handler for mission progress
+                    let onclick = "";
+                    if(f.name.includes('.bak')) onclick = `onclick="loadFile('${f.href}')"; return false;`;
+                    else onclick = `onclick="loadPath('${f.href}')"; return false;`;
+                    
+                    listHtml += `<a href="${f.href}" ${onclick}>${f.name}</a>`;
+                });
+                listHtml += `</div><hr><small>Apache/2.4.41 (Ubuntu) Server Port 80</small></div>`;
+                view.innerHTML = listHtml;
+            }
+
+            // LEVEL PROGRESSION CHECK
+            if (level === 1 && input === "/robots.txt") {
+                setTimeout(() => { level = 2; renderMission(); }, 500);
+            }
+            if (level === 2 && input === "/dev_backup") {
+                setTimeout(() => { level = 3; renderMission(); }, 500);
+            }
+
+        } else {
+            log.innerHTML += `[RESPONSE] 404 Not Found<br>`;
+            view.innerHTML = `<div class="p-5 text-center"><h1>404 Not Found</h1><p>The requested URL ${input} was not found on this server.</p></div>`;
+        }
+        
+        // Auto scroll log
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // Helper for directory clicks
+    function loadPath(path) {
+        document.getElementById('urlInput').value = path;
+        navigate();
+    }
+
+    // Helper for file clicks (Level 3 Success)
+    function loadFile(path) {
+        document.getElementById('urlInput').value = path;
+        navigate();
+        if(level === 3) {
+            setTimeout(() => { level = 4; renderMission(); }, 500);
+        }
+    }
+
+    function attemptLogin() {
+        const u = document.getElementById('loginUser').value;
+        const p = document.getElementById('loginPass').value;
+        
+        if (u === 'admin' && p === 'RaHaS1a2025!') {
+            document.getElementById('browserView').innerHTML = `
+                <div class="bg-success text-white p-5 text-center h-100 d-flex flex-column justify-content-center">
+                    <i class="fas fa-check-circle fa-5x mb-3"></i>
+                    <h1>WELCOME, ADMIN!</h1>
+                    <p>Anda berhasil mengambil alih server.</p>
+                </div>
+            `;
+            if(level === 4) {
+                level = 5;
+                renderMission();
+                document.getElementById('remediationSection').style.display = 'block';
+                document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+            }
+        } else {
+            document.getElementById('loginMsg').style.display = 'block';
+        }
+    }
+
+    function renderMission() {
+        if(level > 5) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/4";
+        document.getElementById('missionDisplay').innerHTML = `
+            <span class="level-badge">${m.badge}</span>
+            <div class="mission-card">
+                <h5 class="fw-bold mb-3 text-white">${m.title}</h5>
+                <p class="small text-light opacity-75">${m.desc}</p>
+            </div>
+        `;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = m.hint;
+    }
+
+    function toggleHint() {
+        const box = document.getElementById('hintBox');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function finishLab() {
+        localStorage.setItem('sim_a05', 'done');
+        window.location.href = '../index.html';
+    }
+
+    // Init
+    navigate(); // Load home
+    renderMission();
+</script>
+
+</body>
+</html>
