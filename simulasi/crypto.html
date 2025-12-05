@@ -3,203 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab A02: Crypto Failures</title>
+    <title>Lab A02: Cryptographic Failures</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f4f6f8; height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #0b0c10; height: 100vh; overflow: hidden; color: #c5c6c7; }
         
-        /* --- LAYOUT UTAMA --- */
-        .lab-container { display: flex; height: 100vh; }
+        /* LAYOUT */
+        .lab-wrapper { display: flex; height: 100vh; }
         
-        /* PANEL KIRI: PANDUAN */
-        .guide-panel { 
-            width: 400px; background: #0f172a; color: #fff; 
-            display: flex; flex-direction: column; border-right: 1px solid #334155;
-            z-index: 10; box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+        /* 1. SIDEBAR (MISSION CONTROL) */
+        .sidebar { 
+            width: 400px; background: #1f2833; border-right: 1px solid #45a29e; 
+            display: flex; flex-direction: column; z-index: 10; 
+            box-shadow: 5px 0 15px rgba(0,0,0,0.3);
         }
-        .guide-header { padding: 20px; border-bottom: 1px solid #1e293b; background: #020617; }
-        .guide-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .sidebar-header { padding: 20px; background: #0b0c10; border-bottom: 1px solid #45a29e; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
         
-        .step-card { 
-            background: #1e293b; border-radius: 8px; padding: 15px; margin-bottom: 15px; 
-            border-left: 4px solid #64748b; transition: all 0.3s;
+        .level-badge { 
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; 
+            background: #0b0c10; border: 1px solid #45a29e; color: #66fcf1;
+            padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block;
         }
-        .step-card.active { border-left-color: #06b6d4; background: #164e63; }
-        .step-card.done { border-left-color: #22c55e; opacity: 0.6; }
+        .mission-card {
+            background: #2b3642; border-radius: 8px; padding: 20px; margin-bottom: 20px;
+            border-left: 4px solid #66fcf1; animation: fadeIn 0.5s;
+        }
+        
+        .hint-wrapper { margin-top: auto; padding-top: 20px; border-top: 1px solid #45a29e; }
+        .hint-box { 
+            background: #2d3748; border: 1px solid #f6e05e; color: #fbd38d; 
+            padding: 15px; border-radius: 8px; margin-top: 10px; display: none; 
+            font-size: 0.9rem;
+        }
 
-        /* Code Snippet Styles */
-        .code-block {
-            background: #000; color: #a5b4fc; font-family: 'JetBrains Mono', monospace;
-            padding: 12px; border-radius: 6px; font-size: 0.8rem; margin-top: 10px;
-            border: 1px solid #334155; display: none;
+        .code-snippet {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+            background: #000; padding: 15px; border-radius: 6px;
+            border: 1px solid #45a29e; margin-top: 10px; display: none; color: #66fcf1;
         }
-        .comment { color: #64748b; font-style: italic; }
-        .keyword { color: #c084fc; }
-        .func { color: #67e8f9; }
 
-        /* PANEL KANAN: SIMULATOR */
-        .sim-panel { 
-            flex-grow: 1; padding: 30px; background: #0f172a; 
-            background-image: radial-gradient(#1e293b 1px, transparent 1px);
-            background-size: 20px 20px;
+        /* 2. MAIN AREA (TOOLS) */
+        .main-area { 
+            flex-grow: 1; padding: 30px; background: #0b0c10; 
+            background-image: linear-gradient(rgba(102, 252, 241, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(102, 252, 241, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
             display: flex; flex-direction: column; gap: 20px;
         }
 
-        /* 1. Network Sniffer UI */
+        /* Tool: Network Sniffer */
         .sniffer-window {
-            background: #1e293b; border-radius: 8px; border: 1px solid #334155; overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: #1f2833; border: 1px solid #45a29e; border-radius: 5px; 
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
         }
         .window-header {
-            background: #334155; padding: 8px 15px; color: #e2e8f0; font-size: 0.85rem; font-weight: bold;
+            background: #0b0c10; padding: 8px 15px; border-bottom: 1px solid #45a29e;
+            color: #66fcf1; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center;
         }
-        .packet-list { padding: 0; margin: 0; list-style: none; }
+        .packet-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; height: 150px; }
         .packet-item {
-            padding: 10px 15px; border-bottom: 1px solid #334155; cursor: pointer;
-            display: flex; justify-content: space-between; color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+            padding: 8px 15px; border-bottom: 1px solid #2b3642; cursor: pointer;
+            display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+            color: #8892b0;
         }
-        .packet-item:hover { background: #334155; color: #fff; }
-        .packet-item.selected { background: #0ea5e9; color: white; }
+        .packet-item:hover { background: #2b3642; color: #fff; }
+        .packet-item.selected { background: #45a29e; color: #0b0c10; font-weight: bold; }
         
         .packet-detail {
-            padding: 15px; background: #020617; color: #22c55e; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
-            border-top: 1px solid #334155; min-height: 100px; word-break: break-all;
+            padding: 15px; background: #000; color: #66fcf1; font-family: 'JetBrains Mono', monospace; 
+            font-size: 0.85rem; border-top: 1px solid #45a29e; flex: 1; overflow-y: auto; word-break: break-all;
         }
 
-        /* 2. Decryption Tool UI */
-        .tool-window {
-            background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        /* Tool: Decoder */
+        .decoder-window {
+            background: #1f2833; border: 1px solid #45a29e; border-radius: 5px; 
+            height: 45%; padding: 20px; display: flex; flex-direction: column;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
         }
         .crypto-input {
-            background: #020617; border: 1px solid #475569; color: #fff; font-family: 'JetBrains Mono', monospace;
+            background: #0b0c10; border: 1px solid #45a29e; color: #66fcf1; 
+            font-family: 'JetBrains Mono', monospace;
         }
-        
+        .btn-cyber {
+            background: transparent; border: 1px solid #66fcf1; color: #66fcf1;
+            font-family: 'JetBrains Mono', monospace; transition: all 0.3s;
+        }
+        .btn-cyber:hover { background: #66fcf1; color: #0b0c10; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 1. Blokir Klik Kanan (Context Menu)
+        // Ini mencegah user klik kanan -> "View Page Source" atau "Inspect"
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // 2. Blokir Shortcut Keyboard Developer
+        document.onkeydown = function(e) {
+            // F12 (DevTools)
+            if(e.keyCode == 123) {
+                return false;
+            }
+            
+            // Ctrl+U (View Source)
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+            
+            // Ctrl+Shift+I (DevTools)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            
+            // Ctrl+Shift+J (Console)
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+
+            // Ctrl+S (Save Page) - Mencegah download source code mudah
+            if(e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) {
+                return false;
+            }
+        };
+    });
+</script>
 <body>
 
-<div class="lab-container">
+<div class="lab-wrapper">
     
-    <div class="guide-panel">
-        <div class="guide-header">
-            <h5 class="mb-0 fw-bold text-info"><i class="fas fa-key me-2"></i>Crypto Lab</h5>
-            <small class="text-white-50">A02: Cryptographic Failures</small>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-info"><i class="fas fa-fingerprint me-2"></i>Crypto Lab</h5>
+            <small class="text-white-50">Mission: Data Interception</small>
         </div>
-        <div class="guide-content">
-            
-            <div class="step-card active" id="step1">
-                <h6 class="fw-bold text-info">Langkah 1: Sadap Jaringan</h6>
-                <p class="small mb-2">Aplikasi bank mengirim data "Credit Card" (CC) melalui jaringan. Developer mengklaim datanya sudah dienkripsi.</p>
-                <p class="small">👉 Klik paket <strong>HTTP POST</strong> di Network Sniffer (Kanan Atas) untuk melihat isinya.</p>
+        
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+
+            <div class="hint-wrapper">
+                <button onclick="toggleHint()" class="btn btn-outline-info btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Buka Petunjuk (Hint)
+                </button>
+                <div id="hintBox" class="hint-box"></div>
             </div>
 
-            <div class="step-card" id="step2">
-                <h6 class="fw-bold">Langkah 2: Analisis Pola</h6>
-                <p class="small mb-2">Lihat data <code>cc_number</code>. Apakah itu enkripsi?</p>
-                <div class="alert alert-dark border border-secondary p-2 small">
-                    <strong>Ciri Base64:</strong><br>
-                    Terdiri dari a-z, A-Z, 0-9, dan sering diakhiri tanda sama dengan (<code>=</code>).
-                </div>
-                <p class="small">👉 Copy teks tersebut dan paste ke <strong>Decoder Tool</strong> (Kanan Bawah). Pilih mode "Base64 Decode".</p>
-            </div>
-
-            <div class="step-card" id="step3">
-                <h6 class="fw-bold">Langkah 3: Crack Hash</h6>
-                <p class="small mb-2">Kita juga menemukan database password yang bocor dalam format MD5.</p>
-                <code class="d-block bg-black p-2 rounded mb-2 small text-warning">Hash: 5f4dcc3b5aa765d61d8327deb882cf99</code>
-                <p class="small">👉 Masukkan hash di atas ke Decoder Tool. Pilih mode "MD5 Crack" (Rainbow Table).</p>
-            </div>
-
-            <div id="remediationBox" style="display: none;">
-                <hr class="border-secondary">
-                <h6 class="fw-bold text-success"><i class="fas fa-shield-alt me-2"></i>Analisis Perbaikan</h6>
-                <p class="small">Encoding (Base64) bukan Enkripsi! Hashing MD5 sudah usang.</p>
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-info fw-bold"><i class="fas fa-shield-alt me-2"></i>Analisis & Remediasi</h6>
+                <p class="small">Jangan gunakan Base64 atau MD5 untuk data sensitif.</p>
                 
                 <div class="d-flex gap-2 mb-2">
                     <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button>
                     <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button>
                 </div>
-
-                <div id="codeVuln" class="code-block" style="display: block;">
-<span class="comment">// ❌ SALAH: Encoding dianggap aman</span>
-$cc = <span class="func">base64_encode</span>($input_cc);
-
-<span class="comment">// ❌ SALAH: Hash cepat & usang</span>
-$pass = <span class="func">md5</span>($password);
+                
+                <div id="codeVuln" class="code-snippet">
+// ❌ RENTAN
+$cc = base64_encode($input);
+$pass = md5($input);
                 </div>
                 
-                <div id="codeSecure" class="code-block">
-<span class="comment">// ✅ AMAN: Enkripsi AES-256</span>
-$cc = <span class="func">openssl_encrypt</span>($input_cc, "aes-256-gcm", $key...);
-
-<span class="comment">// ✅ AMAN: Hashing Lambat (Argon2)</span>
-$pass = <span class="func">password_hash</span>($pass, PASSWORD_ARGON2ID);
+                <div id="codeSecure" class="code-snippet">
+// ✅ AMAN (AES-256 & Argon2)
+$cc = openssl_encrypt($input, 'aes-256-gcm', $key);
+$pass = password_hash($input, PASSWORD_ARGON2ID);
                 </div>
-                
-                <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai & Keluar</button>
+
+                <button onclick="finishLab()" class="btn btn-info w-100 mt-4 fw-bold text-dark">Selesai & Keluar</button>
             </div>
-
         </div>
-        <div class="p-3 border-top border-secondary text-center">
-            <a href="../index.html" class="text-white-50 text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Kembali ke Dashboard</a>
+
+        <div class="p-3 border-top border-secondary text-center bg-black">
+            <a href="../index.html" class="text-white-50 text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Dashboard</a>
         </div>
     </div>
 
-    <div class="sim-panel">
+    <div class="main-area">
         
         <div class="sniffer-window">
             <div class="window-header">
-                <span><i class="fas fa-wifi me-2 text-success"></i>NETWORK TRAFFIC CAPTURE</span>
-                <span class="badge bg-danger">LIVE</span>
+                <span><i class="fas fa-wifi me-2"></i>NETWORK TRAFFIC (LIVE)</span>
+                <span class="badge bg-danger text-white">CAPTURING...</span>
             </div>
             <ul class="packet-list">
                 <li class="packet-item" onclick="viewPacket(0)">
-                    <span><span class="text-success">GET</span> /index.html</span> <span>200 OK</span>
+                    <span>GET /index.html</span> <span>200 OK</span>
                 </li>
                 <li class="packet-item" onclick="viewPacket(1)">
-                    <span><span class="text-info">GET</span> /style.css</span> <span>200 OK</span>
+                    <span>GET /style.css</span> <span>200 OK</span>
                 </li>
                 <li class="packet-item" onclick="viewPacket(2, this)">
-                    <span><span class="text-warning">POST</span> /api/save_card</span> <span>201 Created</span>
+                    <span class="text-warning">POST /api/save_card</span> <span>201 Created</span>
                 </li>
                 <li class="packet-item" onclick="viewPacket(3)">
-                    <span><span class="text-success">GET</span> /dashboard</span> <span>200 OK</span>
+                    <span>GET /dashboard</span> <span>200 OK</span>
                 </li>
             </ul>
             <div class="packet-detail" id="packetView">
-                // Klik paket di atas untuk melihat detail data...
+                // Klik paket di atas untuk melihat payload...
             </div>
         </div>
 
-        <div class="tool-window">
-            <div class="window-header bg-transparent px-0 pt-0 mb-3 border-0">
-                <span class="text-info fw-bold"><i class="fas fa-laptop-code me-2"></i>CYBER DECODER TOOL v2.0</span>
+        <div class="decoder-window">
+            <div class="d-flex justify-content-between mb-3">
+                <span class="text-info fw-bold"><i class="fas fa-terminal me-2"></i>CYBER DECODER TOOL</span>
             </div>
             
-            <label class="small text-muted mb-1">Input Data (Ciphertext / Hash):</label>
-            <textarea id="toolInput" class="form-control crypto-input mb-3" rows="2" placeholder="Paste data rahasia di sini..."></textarea>
+            <textarea id="toolInput" class="form-control crypto-input mb-3" rows="2" placeholder="Paste data terenkripsi di sini..."></textarea>
             
             <div class="row g-2 mb-3">
-                <div class="col-md-8">
-                    <select class="form-select bg-dark text-white border-secondary" id="toolMode">
-                        <option value="base64">1. Base64 Decode (Untuk Text)</option>
-                        <option value="md5">2. MD5 Crack (Untuk Password)</option>
-                        <option value="aes">3. AES Decrypt (Butuh Key)</option>
+                <div class="col-8">
+                    <select class="form-select bg-dark text-info border-info" id="toolMode">
+                        <option value="base64">Mode: Base64 Decode</option>
+                        <option value="md5">Mode: MD5 Crack (Rainbow Table)</option>
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <button class="btn btn-info w-100 fw-bold" onclick="runTool()">JALANKAN</button>
+                <div class="col-4">
+                    <button class="btn btn-cyber w-100 fw-bold" onclick="runTool()">EXECUTE</button>
                 </div>
             </div>
 
-            <label class="small text-muted mb-1">Output Result:</label>
-            <div id="toolOutput" class="p-3 border border-secondary rounded bg-black text-success font-monospace small" style="min-height: 50px;">
-                Waiting for input...
+            <div id="toolOutput" class="p-3 border border-info rounded bg-black text-success font-monospace small flex-grow-1">
+                > System Ready. Waiting for input...
             </div>
         </div>
 
@@ -207,46 +243,92 @@ $pass = <span class="func">password_hash</span>($pass, PASSWORD_ARGON2ID);
 </div>
 
 <script>
-    // --- DATA ---
+    // --- GAME DATA ---
     const packets = [
         "Host: bank-nusa.com\nUser-Agent: Mozilla/5.0...",
-        "Content-Type: text/css\n...",
-        // TARGET DATA
+        "Content-Type: text/css\nbody { background: #fff; }",
         `POST /api/save_card HTTP/1.1
 Host: bank-nusa.com
 Content-Type: application/json
 
 {
-  "user_id": 105,
-  "card_holder": "Budi Santoso",
-  "cc_number": "NDU1Ni0xMTExLTIyMjItMzMzMw==", 
-  "cvv": "***"
+  "user": "admin",
+  "cc_number": "NDU1Ni0xMTExLTIyMjItMzMzMw==",
+  "cvv": "***",
+  "auth_hash": "5f4dcc3b5aa765d61d8327deb882cf99"
 }`,
-        "Host: bank-nusa.com\nCookie: session_id=..."
+        "Host: bank-nusa.com\nCookie: session_id=XYZ123..."
     ];
-
-    const targetBase64 = "NDU1Ni0xMTExLTIyMjItMzMzMw=="; // 4556-1111-2222-3333
-    const targetHash = "5f4dcc3b5aa765d61d8327deb882cf99"; // password
+    
+    // Jawaban
+    const targetBase64 = "NDU1Ni0xMTExLTIyMjItMzMzMw=="; // Decodes to: 4556-1111-2222-3333
+    const targetHash = "5f4dcc3b5aa765d61d8327deb882cf99"; // Cracks to: password
 
     // --- STATE ---
-    let step1Done = false;
-    let step2Done = false;
-    let step3Done = false;
+    let currentLevel = 0; // 0: Start, 1: Found Packet, 2: Decoded Base64, 3: Cracked Hash (Done)
+
+    const missions = [
+        {
+            badge: "Level 1: Interception",
+            title: "Penyadapan Jaringan",
+            desc: "Langkah pertama: Identifikasi data yang keluar dari aplikasi.<br><br>Gunakan <strong>Network Sniffer</strong> (Panel Atas) untuk melihat lalu lintas data. Cari paket yang mengirimkan data (Metode POST).",
+            hint: "Paket GET biasanya hanya mengambil halaman. Paket <strong>POST</strong> (berwarna oranye) digunakan untuk mengirim formulir. Klik paket tersebut."
+        },
+        {
+            badge: "Level 2: Decoding",
+            title: "Memecahkan Encoding",
+            desc: "Bagus! Anda menemukan paket POST.<br><br>Lihat <code>cc_number</code>. String acak yang diakhiri dengan <code>==</code> adalah ciri khas <strong>Base64</strong>. Ini BUKAN enkripsi, hanya encoding.<br><br>Copy string tersebut, paste di Decoder (Panel Bawah), dan pilih mode Base64.",
+            hint: "String target: <code>NDU1Ni0xMTExLTIyMjItMzMzMw==</code><br>Paste di kotak input bawah, pastikan pilihan mode adalah 'Base64 Decode'."
+        },
+        {
+            badge: "Level 3: Cracking",
+            title: "Meretas Hash Lemah",
+            desc: "Kartu kredit terbaca! Sekarang lihat <code>auth_hash</code> di paket yang sama.<br><br>Itu adalah password admin yang di-hash menggunakan <strong>MD5</strong>. Karena MD5 algoritma usang, kita bisa meretasnya dengan metode 'Rainbow Table'.<br><br>Copy hash tersebut dan gunakan mode MD5 Crack.",
+            hint: "Hash target: <code>5f4dcc3b5aa765d61d8327deb882cf99</code><br>Ubah mode decoder menjadi 'MD5 Crack'."
+        },
+        {
+            badge: "Mission Complete",
+            title: "Laporan Audit",
+            desc: "<strong>SISTEM JEBOL!</strong><br>Anda berhasil mendapatkan Nomor Kartu Kredit (PII) dan Password Admin.<br><br>Ini membuktikan bahwa Base64 dan MD5 tidak aman untuk data finansial.",
+            hint: "Misi selesai. Pelajari kode perbaikan di bawah."
+        }
+    ];
 
     // --- FUNCTIONS ---
-    function viewPacket(index, el) {
-        document.getElementById('packetView').innerText = packets[index];
+    function renderMission() {
+        const m = missions[currentLevel];
+        const display = document.getElementById('missionDisplay');
+        
+        display.innerHTML = `
+            <span class="level-badge">${m.badge}</span>
+            <div class="mission-card">
+                <h5 class="fw-bold mb-3 text-white">${m.title}</h5>
+                <p class="small text-light opacity-75">${m.desc}</p>
+            </div>
+        `;
+        
+        // Reset Hint
+        const hintBox = document.getElementById('hintBox');
+        hintBox.style.display = 'none';
+        hintBox.innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+    }
+
+    function toggleHint() {
+        const box = document.getElementById('hintBox');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function viewPacket(idx, el) {
+        document.getElementById('packetView').innerText = packets[idx];
         
         // Highlight selection
         document.querySelectorAll('.packet-item').forEach(e => e.classList.remove('selected'));
         if(el) el.classList.add('selected');
 
-        // Check Step 1 Completion
-        if(index === 2 && !step1Done) {
-            step1Done = true;
-            document.getElementById('step1').classList.remove('active');
-            document.getElementById('step1').classList.add('done');
-            document.getElementById('step2').classList.add('active');
+        // Logic Level 1 -> 2
+        if(idx === 2 && currentLevel === 0) {
+            currentLevel = 1;
+            renderMission();
         }
     }
 
@@ -255,70 +337,60 @@ Content-Type: application/json
         const mode = document.getElementById('toolMode').value;
         const output = document.getElementById('toolOutput');
 
-        output.innerText = "Processing...";
+        output.innerText = "> Processing...";
         output.classList.remove('text-danger');
         output.classList.add('text-success');
 
         setTimeout(() => {
             if (mode === 'base64') {
                 try {
-                    const res = atob(input); // Decode Base64
-                    if(res.includes('4556')) { // Check correct CC
-                        output.innerHTML = `SUCCESS! DECODED DATA:\n"${res}"\n\n[!] CREDIT CARD NUMBER EXPOSED!`;
-                        if(!step2Done) {
-                            step2Done = true;
-                            document.getElementById('step2').classList.remove('active');
-                            document.getElementById('step2').classList.add('done');
-                            document.getElementById('step3').classList.add('active');
+                    const res = atob(input);
+                    if(res.includes('4556')) { // Correct CC start
+                        output.innerText = `> SUCCESS: ${res}\n[!] CREDIT CARD EXPOSED`;
+                        if(currentLevel === 1) {
+                            currentLevel = 2;
+                            renderMission();
                         }
                     } else {
-                        output.innerText = `Decoded: "${res}"`;
+                        output.innerText = `> Decoded: ${res}`;
                     }
                 } catch(e) {
-                    output.innerText = "Error: Invalid Base64 string.";
+                    output.innerText = "> Error: Invalid Base64";
                     output.classList.add('text-danger');
                 }
             } 
             else if (mode === 'md5') {
                 if(input === targetHash) {
-                    output.innerHTML = `HASH CRACKED!\nAlgorithm: MD5\nPassword: "password"`;
-                    checkWin();
+                    output.innerText = `> CRACK SUCCESS!\n> Hash: ${input}\n> Password: "password"`;
+                    if(currentLevel === 2) {
+                        currentLevel = 3;
+                        renderMission();
+                        document.getElementById('remediationSection').style.display = 'block';
+                        // Scroll sidebar
+                        document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+                    }
                 } else {
-                    output.innerText = "Hash not found in rainbow table.";
+                    output.innerText = "> Hash not found in rainbow table.";
                     output.classList.add('text-danger');
                 }
-            } 
-            else if (mode === 'aes') {
-                output.innerText = "Error: Decryption Key missing. Cannot decrypt AES.";
-                output.classList.add('text-danger');
             }
         }, 500);
     }
 
-    function checkWin() {
-        if(step2Done) {
-            document.getElementById('step3').classList.remove('active');
-            document.getElementById('step3').classList.add('done');
-            
-            // Show Remediation
-            document.getElementById('remediationBox').style.display = 'block';
-            document.querySelector('.guide-content').scrollTop = document.querySelector('.guide-content').scrollHeight;
-        }
-    }
-
     function showCode(type) {
-        document.querySelectorAll('.code-block').forEach(el => el.style.display = 'none');
-        if(type === 'vuln') {
-            document.getElementById('codeVuln').style.display = 'block';
-        } else {
-            document.getElementById('codeSecure').style.display = 'block';
-        }
+        document.getElementById('codeVuln').style.display = 'none';
+        document.getElementById('codeSecure').style.display = 'none';
+        if(type === 'vuln') document.getElementById('codeVuln').style.display = 'block';
+        else document.getElementById('codeSecure').style.display = 'block';
     }
 
     function finishLab() {
         localStorage.setItem('sim_a02', 'done');
         window.location.href = '../index.html';
     }
+
+    // Init
+    renderMission();
 </script>
 
 </body>
