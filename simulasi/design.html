@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A04: Insecure Design</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #ea580c; border: 1px solid #f97316; color: #ffedd5; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #f97316; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; }
+        .code-snippet { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #cbd5e1; }
+
+        /* MAIN AREA */
+        .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; }
+
+        /* E-COMMERCE UI */
+        .store-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .wallet-badge { background: #1e293b; border: 1px solid #334155; padding: 10px 20px; border-radius: 50px; font-weight: bold; font-family: 'JetBrains Mono', monospace; color: #22c55e; }
+        
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .product-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; transition: transform 0.2s; position: relative; overflow: hidden; }
+        .product-card:hover { border-color: #f97316; transform: translateY(-5px); }
+        .product-icon { font-size: 3rem; margin-bottom: 15px; color: #94a3b8; }
+        .product-price { font-weight: bold; color: #f97316; margin: 10px 0; font-family: 'JetBrains Mono', monospace; }
+        
+        /* API CONSOLE (ATTACK TOOL) */
+        .api-console { background: #020617; border: 1px solid #334155; border-radius: 8px; height: 250px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -10px 30px rgba(0,0,0,0.3); }
+        .console-header { background: #1e293b; padding: 8px 15px; font-size: 0.8rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+        .console-body { display: flex; flex-grow: 1; }
+        .editor-area { flex: 1; padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; background: #000; color: #a5b4fc; border: none; outline: none; resize: none; }
+        .log-area { flex: 1; background: #0f172a; border-left: 1px solid #334155; padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #22c55e; overflow-y: auto; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-warning"><i class="fas fa-drafting-compass me-2"></i>Insecure Design</h5>
+            <small class="text-secondary">Logic Flaw & Business Risk</small>
+        </div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Hint / Bantuan
+                </button>
+                <div id="hintBox" class="hint-box"></div>
+            </div>
+
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold"><i class="fas fa-code me-2"></i>Analisis Kode</h6>
+                <p class="small text-secondary">Masalah: Sistem mempercayai input kuantitas dari user tanpa validasi rentang nilai.</p>
+                
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button>
+                    <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button>
+                </div>
+                
+                <div id="codeVuln" class="code-snippet">
+// ❌ RENTAN: Tanpa Validasi
+$qty = $_POST['qty'];
+$total = $price * $qty;
+
+// Jika qty = -10, Total jadi Minus
+// Total Minus = Refund/Tambah Saldo
+$user->wallet -= $total; 
+                </div>
+                
+                <div id="codeSecure" class="code-snippet">
+// ✅ AMAN: Validasi Logika Bisnis
+$qty = (int)$_POST['qty'];
+
+// 1. Cek apakah qty positif
+if ($qty <= 0) {
+    throw new Exception("Jumlah tidak valid");
+}
+
+// 2. Cek limit pembelian
+if ($qty > 5) {
+    throw new Exception("Maksimal 5 item");
+}
+
+$total = $price * $qty;
+                </div>
+                <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary">
+            <a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="main-area">
+        
+        <div class="store-header">
+            <h4 class="text-white fw-bold"><i class="fas fa-shopping-cart me-2"></i>Gadget Sultan</h4>
+            <div class="wallet-badge">
+                <i class="fas fa-wallet me-2"></i>Saldo: <span id="walletDisplay">Rp 500.000</span>
+            </div>
+        </div>
+
+        <div class="products-grid">
+            <div class="product-card">
+                <div class="product-icon"><i class="fas fa-mobile-alt"></i></div>
+                <h6 class="text-white">Flagship Phone</h6>
+                <div class="product-price">Rp 15.000.000</div>
+                <button onclick="loadToConsole(1, 15000000)" class="btn btn-outline-primary btn-sm w-100 mt-auto">Beli</button>
+            </div>
+            <div class="product-card">
+                <div class="product-icon"><i class="fas fa-laptop"></i></div>
+                <h6 class="text-white">Gaming Laptop</h6>
+                <div class="product-price">Rp 25.000.000</div>
+                <button onclick="loadToConsole(2, 25000000)" class="btn btn-outline-primary btn-sm w-100 mt-auto">Beli</button>
+            </div>
+            <div class="product-card border-warning">
+                <div class="product-icon text-warning"><i class="fas fa-server"></i></div>
+                <h6 class="text-white">Quantum Server</h6>
+                <div class="product-price text-warning">Rp 1.000.000.000</div>
+                <button onclick="loadToConsole(3, 1000000000)" class="btn btn-warning btn-sm w-100 mt-auto text-dark fw-bold">Beli (Target)</button>
+            </div>
+        </div>
+
+        <div class="alert alert-info border-info bg-opacity-10 bg-info text-info small mt-2">
+            <i class="fas fa-info-circle me-2"></i>Klik "Beli" untuk memuat permintaan ke API Console di bawah. Anda tidak bisa membeli langsung karena saldo kurang.
+        </div>
+
+        <div class="api-console">
+            <div class="console-header">
+                <span><i class="fas fa-terminal me-2"></i>API REQUEST TAMPERING</span>
+                <button onclick="sendRequest()" class="btn btn-xs btn-success fw-bold px-3">KIRIM REQUEST <i class="fas fa-paper-plane ms-1"></i></button>
+            </div>
+            <div class="console-body">
+                <textarea id="apiRequest" class="editor-area" spellcheck="false">// Pilih produk untuk melihat JSON payload...</textarea>
+                <div id="apiLog" class="log-area">// Server Response Log:
+Waiting...</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- STATE ---
+    let wallet = 500000;
+    let level = 1;
+
+    const missions = [
+        {},
+        {
+            badge: "Tahap 1: Analisis",
+            title: "Cek Kekurangan Saldo",
+            desc: "Saldo Anda hanya Rp 500.000. Cobalah membeli 'Flagship Phone' seharga 15 Juta.<br><br>Klik tombol Beli, lalu klik 'Kirim Request' di console bawah tanpa mengubah apapun.",
+            hint: "Lakukan pembelian normal untuk melihat pesan error 'Saldo Tidak Cukup' di log server."
+        },
+        {
+            badge: "Tahap 2: Manipulasi Logika",
+            title: "Serangan Negatif (Refund Glitch)",
+            desc: "Sistem menghitung total dengan rumus: <code>Harga x Jumlah</code>.<br><br>Apa yang terjadi jika Anda membeli dalam jumlah <strong>NEGATIF</strong>?<br><br>Klik Beli pada 'Gaming Laptop', lalu di API Console, ubah <code>qty: 1</code> menjadi <code>qty: -10</code>. Lalu Kirim.",
+            hint: "Ubah payload menjadi: <code>{ \"id\": 2, \"qty\": -10 }</code>.<br>Matematikanya: 25 Juta x -10 = -250 Juta.<br>Sistem akan mengira Anda harus membayar minus, yang berarti sistem memberi Anda uang."
+        },
+        {
+            badge: "Tahap 3: Pembelian Target",
+            title: "Beli Quantum Server",
+            desc: "Glitch berhasil! Saldo Anda sekarang melimpah ruah.<br><br>Gunakan saldo hasil glitch tersebut untuk membeli 'Quantum Server' (Target Utama) secara legal.",
+            hint: "Klik Beli pada Quantum Server. Pastikan qty: 1. Kirim Request."
+        },
+        {
+            badge: "Mission Complete",
+            title: "Logic Flaw Exposed",
+            desc: "<strong>SISTEM HANCUR!</strong><br>Anda mengeksploitasi 'Insecure Design'. Developer lupa memvalidasi bahwa jumlah barang (qty) harus lebih besar dari 0.",
+            hint: "Lab Selesai."
+        }
+    ];
+
+    // --- UI FUNCTIONS ---
+    function renderMission() {
+        if(level > 3) return;
+        const m = missions[level];
+        document.getElementById('missionDisplay').innerHTML = `
+            <span class="level-badge">${m.badge}</span>
+            <div class="mission-card">
+                <h5 class="fw-bold mb-3 text-white">${m.title}</h5>
+                <p class="small text-light opacity-75">${m.desc}</p>
+            </div>
+        `;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+    }
+
+    function toggleHint() {
+        const box = document.getElementById('hintBox');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function formatRupiah(num) {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
+    }
+
+    function updateWallet() {
+        document.getElementById('walletDisplay').innerText = formatRupiah(wallet);
+        // Animasi visual jika kaya
+        if(wallet > 100000000) {
+            document.getElementById('walletDisplay').classList.add('text-warning');
+        }
+    }
+
+    // --- LOGIC ---
+    let currentPrice = 0;
+
+    function loadToConsole(id, price) {
+        currentPrice = price;
+        const payload = {
+            product_id: id,
+            price_per_item: price, // Bad design: client sends price (optional scenario)
+            qty: 1
+        };
+        document.getElementById('apiRequest').value = JSON.stringify(payload, null, 4);
+    }
+
+    function sendRequest() {
+        const raw = document.getElementById('apiRequest').value;
+        const log = document.getElementById('apiLog');
+        
+        try {
+            const data = JSON.parse(raw);
+            const total = currentPrice * data.qty;
+            
+            log.innerHTML += `\n> Processing Order... Qty: ${data.qty}`;
+            
+            // LOGIKA SERVER (SIMULASI)
+            if (wallet >= total) {
+                wallet -= total;
+                updateWallet();
+                
+                log.innerHTML += `\n<span class="text-success">[OK] Transaksi Berhasil!</span>`;
+                log.innerHTML += `\n> Total: ${formatRupiah(total)}`;
+                log.innerHTML += `\n> Sisa Saldo: ${formatRupiah(wallet)}`;
+
+                // CHECK LEVEL PROGRESS
+                if (level === 1 && total > 0) {
+                    // User beli normal di level 1 (Harusnya gagal karena mahal)
+                    // Tapi kalau wallet cukup (tidak mungkin di awal), ya sudah.
+                } 
+                else if (level === 2 && data.qty < 0) {
+                    // Level 2 Success: Negative Qty
+                    setTimeout(() => {
+                        alert("GLITCH AKTIF! Saldo Anda bertambah drastis.");
+                        level = 3;
+                        renderMission();
+                    }, 500);
+                }
+                else if (level === 3 && data.product_id === 3 && data.qty > 0) {
+                    // Level 3 Success: Buy Target
+                    setTimeout(() => {
+                        alert("WIN! Anda berhasil membeli Quantum Server.");
+                        level = 4;
+                        renderMission();
+                        document.getElementById('remediationSection').style.display = 'block';
+                        document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+                    }, 500);
+                }
+
+            } else {
+                log.innerHTML += `\n<span class="text-danger">[ERROR] Saldo Tidak Cukup.</span>`;
+                log.innerHTML += `\n> Butuh: ${formatRupiah(total)}`;
+                log.innerHTML += `\n> Punya: ${formatRupiah(wallet)}`;
+                
+                // Level 1 Completion (Gagal Beli = Sukses Tahap 1)
+                if (level === 1) {
+                    level = 2;
+                    renderMission();
+                }
+            }
+
+        } catch (e) {
+            log.innerHTML += `\n<span class="text-danger">[FATAL] Invalid JSON Format.</span>`;
+        }
+        
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function showCode(type) {
+        document.getElementById('codeVuln').style.display = 'none';
+        document.getElementById('codeSecure').style.display = 'none';
+        if(type === 'vuln') document.getElementById('codeVuln').style.display = 'block';
+        else document.getElementById('codeSecure').style.display = 'block';
+    }
+
+    function finishLab() {
+        localStorage.setItem('sim_a04', 'done');
+        window.location.href = '../index.html';
+    }
+
+    // Init
+    renderMission();
+</script>
+
+</body>
+</html>
