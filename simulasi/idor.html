@@ -3,268 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab 01: IDOR - Advanced Scenario</title>
+    <title>Lab A01: IDOR - Medical Records</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #e9ecef; height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f6f8; height: 100vh; overflow: hidden; }
         
-        /* Layout Split */
-        .main-container { height: 100vh; display: flex; }
-        .sidebar-guide { width: 350px; background: #2c3e50; color: white; display: flex; flex-direction: column; }
-        .workspace { flex-grow: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        /* Layout Grid */
+        .lab-container { display: flex; height: 100vh; }
+        
+        /* Left Panel: Guide & Code */
+        .guide-panel { 
+            width: 400px; background: #1e293b; color: #fff; 
+            display: flex; flex-direction: column; border-right: 1px solid #334155;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .guide-header { padding: 20px; border-bottom: 1px solid #334155; background: #0f172a; }
+        .guide-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .step-card { 
+            background: #334155; border-radius: 8px; padding: 15px; margin-bottom: 15px; 
+            border-left: 4px solid #94a3b8; transition: all 0.3s;
+        }
+        .step-card.active { border-left-color: #3b82f6; background: #1e293b; box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
+        .step-card.done { border-left-color: #22c55e; opacity: 0.7; }
+        
+        /* Code Review Snippet */
+        .code-snippet {
+            background: #000; color: #0f0; font-family: 'Fira Code', monospace;
+            padding: 10px; border-radius: 5px; font-size: 0.8rem; margin-top: 10px;
+            display: none;
+        }
 
-        /* Chat Guide Styles */
-        .chat-box { flex-grow: 1; padding: 20px; overflow-y: auto; font-size: 0.9rem; }
-        .chat-bubble { background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid #3498db; animation: fadeIn 0.5s; }
-        .chat-bubble.user { border-left: 4px solid #2ecc71; background: rgba(46, 204, 113, 0.1); text-align: right; }
-        .chat-title { font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: #bdc3c7; margin-bottom: 5px; }
+        /* Right Panel: Simulation */
+        .sim-panel { flex-grow: 1; padding: 40px; background: #f1f5f9; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         
-        /* Browser Simulation */
-        .browser-mockup { width: 100%; max-width: 800px; background: white; border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow: hidden; border: 1px solid #ced4da; transition: all 0.3s; }
-        .browser-bar { background: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; }
-        .url-input-group { flex-grow: 1; margin: 0 15px; position: relative; }
-        .url-display { width: 100%; border: 1px solid #ced4da; background: #fff; padding: 5px 15px; border-radius: 20px; color: #555; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; display: flex; align-items: center; }
-        .url-editable { border: none; background: #fff3cd; color: #d63384; font-weight: bold; width: 50px; text-align: center; margin: 0 2px; border-radius: 3px; outline: none; }
+        /* Browser Mockup */
+        .browser-mockup { 
+            width: 100%; max-width: 900px; background: white; 
+            border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); 
+            overflow: hidden; display: flex; flex-direction: column; height: 600px;
+        }
+        .browser-bar { 
+            background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; 
+            display: flex; align-items: center; gap: 15px;
+        }
+        .url-box { 
+            flex-grow: 1; background: #f1f5f9; padding: 8px 15px; border-radius: 8px; 
+            color: #64748b; font-family: 'Fira Code', monospace; font-size: 0.9rem;
+            display: flex; align-items: center;
+        }
+        .url-editable { 
+            background: transparent; border: none; color: #0f172a; font-weight: 600; 
+            outline: none; width: 60px; text-align: center; border-bottom: 2px solid transparent;
+        }
+        .url-editable:focus { border-bottom-color: #3b82f6; }
         
-        /* Login Screen Mockup */
-        .login-screen { padding: 50px; text-align: center; }
-        
-        /* Profile Screen */
-        .profile-view { padding: 30px; display: none; }
-        
-        /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .highlight-pulse { animation: pulse-red 2s infinite; border: 2px solid red !important; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+        .browser-content { flex-grow: 1; overflow-y: auto; position: relative; }
+
+        /* App Specific UI: Hospital Portal */
+        .hospital-header { background: #0ea5e9; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .patient-card { margin: 30px auto; max-width: 700px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .patient-header { background: #f8fafc; padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 20px; align-items: center; }
+        .medical-record { padding: 30px; }
+        .sensitive-tag { background: #fee2e2; color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+
+        /* Login Screen */
+        .login-wrapper { height: 100%; display: flex; align-items: center; justify-content: center; background: #f8fafc; }
+        .login-box { width: 350px; padding: 40px; background: white; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+
+        /* Success Overlay */
+        .success-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(15, 23, 42, 0.95); z-index: 100;
+            display: none; align-items: center; justify-content: center; text-align: center; color: white;
+        }
     </style>
 </head>
 <body>
 
-<div class="main-container">
-    <div class="sidebar-guide shadow">
-        <div class="p-3 border-bottom border-secondary">
-            <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Security Mentor</h5>
-            <small class="text-white-50">Panduan Interaktif IDOR</small>
+<div class="lab-container">
+    
+    <div class="guide-panel">
+        <div class="guide-header">
+            <h5 class="mb-0 fw-bold"><i class="fas fa-book-medical me-2"></i>Lab Guide: IDOR</h5>
+            <small class="text-secondary">Broken Access Control</small>
         </div>
-        <div class="chat-box" id="chatContainer">
+        <div class="guide-content">
+            
+            <div class="step-card active" id="step1">
+                <h6 class="fw-bold text-info">Langkah 1: Akses Sistem</h6>
+                <p class="small mb-2">Anda adalah pasien bernama <strong>Budi</strong>. Silakan login untuk melihat rekam medis Anda sendiri.</p>
+                <ul class="small text-white-50 ps-3">
+                    <li>Username: <code>budi</code></li>
+                    <li>Password: <code>123456</code></li>
+                </ul>
             </div>
-        <div class="p-3 border-top border-secondary">
-            <a href="../index.html" class="btn btn-outline-light btn-sm w-100">
-                <i class="fas fa-arrow-left me-2"></i> Kembali ke Dashboard
-            </a>
+
+            <div class="step-card" id="step2">
+                <h6 class="fw-bold">Langkah 2: Observasi URL</h6>
+                <p class="small mb-2">Perhatikan URL di browser setelah login. Aplikasi menggunakan parameter <code>id</code> untuk mengambil data.</p>
+                <div class="alert alert-dark border border-secondary p-2 small">
+                    <i class="fas fa-search me-1"></i> Parameter terlihat: <br>
+                    <code>view_record.php?id=...</code>
+                </div>
+            </div>
+
+            <div class="step-card" id="step3">
+                <h6 class="fw-bold">Langkah 3: Eksploitasi</h6>
+                <p class="small mb-2">Aplikasi ini rentan. Server tidak mengecek kepemilikan data. Ubah <code>id</code> untuk mencari pasien lain.</p>
+                <p class="small text-warning">🎯 Target: Temukan rekam medis <strong>Bpk. Walikota</strong> (VIP) yang dirahasiakan.</p>
+            </div>
+
+            <div id="remediationBox" style="display: none;">
+                <hr class="border-secondary">
+                <h6 class="fw-bold text-success"><i class="fas fa-shield-alt me-2"></i>Analisis Perbaikan</h6>
+                <p class="small">Mengapa ini terjadi? Lihat perbandingan kode:</p>
+                
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button>
+                    <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button>
+                </div>
+
+                <div id="codeVuln" class="code-snippet" style="display: block;">
+// ❌ KODE RENTAN
+$id = $_GET['id'];
+// Langsung query tanpa cek user login
+$query = "SELECT * FROM records WHERE id = $id";
+                </div>
+                
+                <div id="codeSecure" class="code-snippet">
+// ✅ KODE AMAN
+$id = $_GET['id'];
+$current_user = $_SESSION['user_id'];
+
+// Cek: Apakah ID yang diminta == User Login?
+if ($id != $current_user) {
+    die("Akses Ditolak!");
+}
+$query = "SELECT * FROM records WHERE id = $id";
+                </div>
+                
+                <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai & Keluar</button>
+            </div>
+
+        </div>
+        <div class="p-3 border-top border-secondary text-center">
+            <a href="../index.html" class="text-white-50 text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Kembali ke Dashboard</a>
         </div>
     </div>
 
-    <div class="workspace bg-light">
+    <div class="sim-panel">
         
-        <div class="browser-mockup" id="browserFrame">
+        <div class="browser-mockup">
             <div class="browser-bar">
-                <div class="d-flex gap-1 opacity-50">
-                    <i class="fas fa-circle text-danger small"></i>
-                    <i class="fas fa-circle text-warning small"></i>
-                    <i class="fas fa-circle text-success small"></i>
+                <div class="d-flex gap-1">
+                    <div class="rounded-circle bg-danger" style="width:10px;height:10px"></div>
+                    <div class="rounded-circle bg-warning" style="width:10px;height:10px"></div>
+                    <div class="rounded-circle bg-success" style="width:10px;height:10px"></div>
                 </div>
-                <div class="d-flex gap-3 ms-3 text-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    <i class="fas fa-arrow-right"></i>
-                    <i class="fas fa-redo"></i>
-                </div>
-                <div class="url-input-group">
-                    <div class="url-display" id="urlBar">
-                        <i class="fas fa-lock text-success me-2 small"></i>
-                        <span id="urlBase">https://portal-karyawan.local/login</span>
-                        <input type="text" id="urlParam" class="url-editable d-none" value="105" onchange="checkExploit()">
-                    </div>
-                </div>
-            </div>
-
-            <div id="screenLogin" class="login-screen">
-                <div style="max-width: 300px; margin: 0 auto;">
-                    <div class="mb-4">
-                        <i class="fas fa-building fa-3x text-primary"></i>
-                        <h4 class="mt-2">Portal Karyawan</h4>
-                        <p class="text-muted small">Silakan login untuk melihat slip gaji.</p>
-                    </div>
-                    <div class="form-floating mb-2">
-                        <input type="text" class="form-control" id="uInput" value="budi_staff">
-                        <label>Username</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <input type="password" class="form-control" value="123456">
-                        <label>Password</label>
-                    </div>
-                    <button class="btn btn-primary w-100 py-2" onclick="doLogin()">Masuk (Login)</button>
+                <div class="ms-2 text-secondary"><i class="fas fa-chevron-left"></i></div>
+                <div class="ms-2 text-secondary"><i class="fas fa-chevron-right"></i></div>
+                <div class="ms-2 text-secondary"><i class="fas fa-redo"></i></div>
+                
+                <div class="url-box ms-3">
+                    <i class="fas fa-lock text-success me-2 small"></i>
+                    <span id="urlBase">https://rs-sentosa.co.id/portal/login</span>
+                    <span id="urlParams" style="display:none;">
+                        /view_record.php?id=<input type="text" id="inputId" class="url-editable" value="200" onchange="loadRecord()">
+                    </span>
                 </div>
             </div>
 
-            <div id="screenProfile" class="profile-view">
-                <div class="row">
-                    <div class="col-md-4 text-center border-end">
-                        <img src="https://ui-avatars.com/api/?name=Budi+Staff&background=random" class="rounded-circle mb-3 shadow" id="avatarImg" width="100">
-                        <h5 class="fw-bold" id="pName">Budi Staff</h5>
-                        <span class="badge bg-secondary mb-3" id="pRole">Staff Biasa</span>
-                    </div>
-                    <div class="col-md-8 ps-4">
-                        <h6 class="text-muted text-uppercase small fw-bold">Informasi Karyawan</h6>
-                        <hr class="mt-1">
-                        <div class="row mb-2">
-                            <div class="col-4 fw-bold">Nomor ID:</div>
-                            <div class="col-8 text-primary fw-bold" id="pID">105</div>
+            <div class="browser-content" id="appContent">
+                
+                <div id="screenLogin" class="login-wrapper">
+                    <div class="login-box">
+                        <i class="fas fa-hospital-user fa-3x text-info mb-3"></i>
+                        <h4 class="fw-bold mb-1">RS Sehat Sentosa</h4>
+                        <p class="text-muted small mb-4">Portal Pasien Online</p>
+                        <div class="form-group mb-3 text-start">
+                            <label class="small fw-bold">No. Rekam Medis</label>
+                            <input type="text" id="loginUser" class="form-control" value="budi">
                         </div>
-                        <div class="row mb-2">
-                            <div class="col-4 fw-bold">Jabatan:</div>
-                            <div class="col-8" id="pJob">Admin Gudang</div>
+                        <div class="form-group mb-4 text-start">
+                            <label class="small fw-bold">Password</label>
+                            <input type="password" class="form-control" value="123456">
                         </div>
-                        <div class="alert alert-success mt-4">
-                            <strong><i class="fas fa-money-bill-wave me-2"></i>Info Gaji:</strong>
-                            <div class="fs-4 fw-bold" id="pSalary">Rp 4.500.000</div>
-                        </div>
+                        <button onclick="doLogin()" class="btn btn-info text-white w-100 fw-bold">Masuk</button>
                     </div>
                 </div>
-            </div>
 
-            <div id="screenWin" class="p-5 text-center d-none bg-success text-white">
-                <i class="fas fa-trophy fa-5x mb-3 text-warning"></i>
-                <h2>HACKED!</h2>
-                <p class="lead">Anda berhasil menemukan akun Administrator (ID 1).</p>
-                <div class="bg-white text-dark p-3 rounded mt-3 text-start small">
-                    <strong>Pelajaran:</strong><br>
-                    Website ini rentan IDOR karena server langsung mempercayai input ID dari URL tanpa mengecek apakah user yang login ("Budi") memiliki izin untuk melihat data "Admin".
+                <div id="screenRecord" style="display:none;">
+                    <div class="hospital-header">
+                        <span class="fw-bold"><i class="fas fa-notes-medical me-2"></i>E-Medical Record</span>
+                        <button onclick="location.reload()" class="btn btn-sm btn-outline-light">Logout</button>
+                    </div>
+                    
+                    <div id="recordContent">
+                        </div>
                 </div>
-                <button onclick="saveExit()" class="btn btn-warning fw-bold mt-4 w-100">Simpan Sertifikat & Keluar</button>
-            </div>
 
+            </div>
         </div>
+
+        <div class="success-overlay" id="successLayer">
+            <div>
+                <i class="fas fa-trophy fa-5x text-warning mb-4"></i>
+                <h2 class="fw-bold">DATA VIP BOCOR!</h2>
+                <p class="lead mb-4">Anda berhasil menemukan data sensitif Walikota melalui celah IDOR.</p>
+                <button onclick="revealRemediation()" class="btn btn-primary btn-lg rounded-pill px-5">
+                    Lihat Analisis & Perbaikan Kode <i class="fas fa-code ms-2"></i>
+                </button>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script>
-    // --- DATABASE MOCKUP ---
+    // --- DATABASE ---
     const db = {
-        105: { name: "Budi Staff", role: "Staff Biasa", job: "Admin Gudang", salary: "Rp 4.500.000", avatar: "Budi+Staff" },
-        104: { name: "Sari HRD", role: "HRD Manager", job: "Human Resource", salary: "Rp 8.000.000", avatar: "Sari+HRD" },
-        1: { name: "BIG BOSS", role: "Administrator", job: "CEO & Founder", salary: "Rp 150.000.000", avatar: "Big+Boss" } // Target
+        200: {
+            name: "Budi Santoso", dob: "12-05-1985", gender: "Laki-laki",
+            diag: "Influenza Ringan", doctor: "Dr. Siti Aminah",
+            notes: "Pasien butuh istirahat 3 hari. Resep: Paracetamol.",
+            status: "bg-success", sensitive: false
+        },
+        201: {
+            name: "Ani Suryani", dob: "22-09-1990", gender: "Perempuan",
+            diag: "Maag Akut", doctor: "Dr. Budi Gunawan",
+            notes: "Hindari makanan pedas.",
+            status: "bg-warning", sensitive: false
+        },
+        100: { // VIP TARGET
+            name: "Bpk. Walikota Subang", dob: "01-01-1970", gender: "Laki-laki",
+            diag: "COVID-19 (Varian Baru)", doctor: "Prof. Dr. Spesialis Paru",
+            notes: "RAHASIA NEGARA. Pasien dikarantina di Lantai 10 VIP. Jangan bocorkan ke media.",
+            status: "bg-danger", sensitive: true
+        }
     };
 
-    // --- STATE MANAGEMENT ---
-    let step = 0; 
-    // 0: Belum Login
-    // 1: Sudah Login (Observasi)
-    // 2: Sedang Mencoba Exploit
-
-    // --- CHAT GUIDE LOGIC ---
-    function addChat(msg, type = 'bot') {
-        const chatBox = document.getElementById('chatContainer');
-        const bubble = document.createElement('div');
-        bubble.className = `chat-bubble ${type}`;
-        
-        const title = type === 'bot' ? 'Mentor Security' : 'Anda';
-        
-        bubble.innerHTML = `
-            <div class="chat-title">${title}</div>
-            ${msg}
-        `;
-        chatBox.appendChild(bubble);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    // --- SCENARIO LOGIC ---
-    
-    // Tahap Awal
-    setTimeout(() => {
-        addChat("Halo! Selamat datang di simulasi IDOR.");
-        setTimeout(() => {
-            addChat("Tugas pertamamu sederhana: <strong>Login</strong> ke sistem menggunakan akun yang sudah tersedia di layar.");
-        }, 1000);
-    }, 500);
-
-    // Fungsi Login
+    // --- GAME STATE ---
     function doLogin() {
-        // UI Updates
-        document.getElementById('screenLogin').style.display = 'none';
-        document.getElementById('screenProfile').style.display = 'block'; // Tampilkan profil Budi
-        
-        // Update URL Bar
-        document.getElementById('urlBase').innerText = "https://portal-karyawan.local/profile?user_id=";
-        document.getElementById('urlParam').classList.remove('d-none');
-        document.getElementById('urlParam').value = "105";
-
-        addChat("Saya sudah login.", "user");
-
-        // Delay respon bot
-        setTimeout(() => {
-            addChat("Bagus. Sekarang perhatikan URL di bagian atas browser."); 
-            addChat("Sistem menampilkan profilmu berdasarkan angka <code>105</code> di akhir URL.");
+        const u = document.getElementById('loginUser').value;
+        if(u === 'budi') {
+            document.getElementById('screenLogin').style.display = 'none';
+            document.getElementById('screenRecord').style.display = 'block';
             
-            // Highlight URL Bar agar user sadar
-            document.querySelector('.url-display').classList.add('highlight-pulse');
+            // Update URL Bar
+            document.getElementById('urlBase').style.display = 'none';
+            document.getElementById('urlBase').innerText = "https://rs-sentosa.co.id/portal";
+            document.getElementById('urlBase').style.display = 'inline';
+            document.getElementById('urlParams').style.display = 'inline';
             
-            setTimeout(() => {
-                addChat("Celah IDOR terjadi ketika kita bisa mengubah angka itu sembarangan. <strong>Coba ganti angka 105 menjadi 104</strong> lalu tekan Enter / klik sembarang.");
-                step = 2; // Masuk fase exploit
-            }, 3000);
-        }, 1000);
+            // Load Initial Data
+            loadRecord(200);
+            
+            // Update Guide
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step1').classList.add('done');
+            document.getElementById('step2').classList.add('active');
+        } else {
+            alert("Login gagal. Gunakan user: budi");
+        }
     }
 
-    // Fungsi Cek Exploit (Saat user ganti angka)
-    function checkExploit() {
-        const inputId = document.getElementById('urlParam').value;
-        const display = document.getElementById('screenProfile');
+    function loadRecord(manualId = null) {
+        let id = manualId ? manualId : document.getElementById('inputId').value;
+        const container = document.getElementById('recordContent');
         
-        if (step < 2) return; // Belum saatnya
-
-        // Animasi Loading
-        display.style.opacity = '0.5';
+        // Simulasi Loading
+        container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-info"></div></div>';
+        
+        // Update Guide State jika user mulai mengubah ID
+        if(!manualId && id != 200) {
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step2').classList.add('done');
+            document.getElementById('step3').classList.add('active');
+        }
 
         setTimeout(() => {
-            display.style.opacity = '1';
-            
-            if (db[inputId]) {
-                const data = db[inputId];
+            if(db[id]) {
+                const p = db[id];
+                const sensitiveBadge = p.sensitive ? '<span class="sensitive-tag ms-2">CONFIDENTIAL / VIP</span>' : '';
                 
-                // Update UI Profil
-                document.getElementById('pName').innerText = data.name;
-                document.getElementById('pRole').innerText = data.role;
-                document.getElementById('pJob').innerText = data.job;
-                document.getElementById('pSalary').innerText = data.salary;
-                document.getElementById('pID').innerText = inputId;
-                document.getElementById('avatarImg').src = `https://ui-avatars.com/api/?name=${data.avatar}&background=random`;
+                container.innerHTML = `
+                    <div class="patient-card shadow-sm bg-white">
+                        <div class="patient-header">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width:60px;height:60px;font-size:1.5rem">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0 fw-bold text-dark">${p.name} ${sensitiveBadge}</h4>
+                                <small class="text-muted">Tgl Lahir: ${p.dob} | ${p.gender}</small>
+                            </div>
+                        </div>
+                        <div class="medical-record">
+                            <div class="row mb-3">
+                                <div class="col-4 fw-bold text-secondary">Diagnosa Utama</div>
+                                <div class="col-8 fw-bold text-dark">${p.diag}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-4 fw-bold text-secondary">Dokter Pemeriksa</div>
+                                <div class="col-8">${p.doctor}</div>
+                            </div>
+                            <div class="alert ${p.status} bg-opacity-10 border-0">
+                                <strong class="${p.sensitive ? 'text-danger' : 'text-success'}">Catatan Medis:</strong><br>
+                                ${p.notes}
+                            </div>
+                        </div>
+                    </div>
+                `;
 
-                // LOGIKA SKENARIO
-                if (inputId == 104) {
-                    addChat(`Saya mencoba ID ${inputId}.`, 'user');
-                    addChat("Wah! Kamu berhasil melihat data <strong>Sari HRD</strong>! Padahal kamu login sebagai Budi.");
-                    addChat("Ini membuktikan sistem tidak mengecek izin aksesmu. Sekarang tantangan terakhir...");
-                    addChat("Biasanya, akun Administrator atau CEO memiliki ID paling awal. <strong>Coba cari siapa pemilik ID 1.</strong>");
-                } 
-                else if (inputId == 1) {
-                    // MENANG
-                    document.getElementById('screenProfile').style.display = 'none';
-                    document.getElementById('screenWin').classList.remove('d-none');
-                    document.querySelector('.url-display').classList.remove('highlight-pulse');
-                    addChat("JACKPOT! Kamu menemukan akun Administrator.", "bot");
-                }
-                else {
-                    addChat(`Mencoba ID ${inputId}...`, 'user');
-                    addChat("Data ditemukan, tapi bukan target utama kita. Coba cari ID 104 atau 1.");
+                // WIN CONDITION
+                if(p.sensitive) {
+                    setTimeout(() => {
+                        document.getElementById('successLayer').style.display = 'flex';
+                    }, 1000);
                 }
 
             } else {
-                // Not Found
-                addChat(`Mencoba ID ${inputId}...`, 'user');
-                addChat("ID tersebut tidak ditemukan di database. Coba angka lain.");
-                // Reset tampilan ke Budi biar tidak blank
-                document.getElementById('urlParam').value = "105";
-                checkExploit(); 
+                container.innerHTML = `
+                    <div class="text-center p-5 text-muted">
+                        <i class="fas fa-file-medical-alt fa-3x mb-3 opacity-25"></i>
+                        <h5>Data Tidak Ditemukan</h5>
+                        <p>Tidak ada pasien dengan ID rekam medis ${id}</p>
+                    </div>
+                `;
             }
         }, 500);
     }
 
-    function saveExit() {
-        localStorage.setItem('sim_a01', 'done'); // Update kunci jadi a01
+    // --- REMEDIATION LOGIC ---
+    function revealRemediation() {
+        document.getElementById('successLayer').style.display = 'none';
+        document.getElementById('step3').classList.remove('active');
+        document.getElementById('step3').classList.add('done');
+        
+        // Buka panel remediasi
+        document.getElementById('remediationBox').style.display = 'block';
+        // Scroll ke bawah panel kiri
+        document.querySelector('.guide-content').scrollTop = document.querySelector('.guide-content').scrollHeight;
+    }
+
+    function showCode(type) {
+        document.querySelectorAll('.code-snippet').forEach(el => el.style.display = 'none');
+        if(type === 'vuln') {
+            document.getElementById('codeVuln').style.display = 'block';
+        } else {
+            document.getElementById('codeSecure').style.display = 'block';
+        }
+    }
+
+    function finishLab() {
+        localStorage.setItem('sim_a01', 'done');
         window.location.href = '../index.html';
     }
 </script>
