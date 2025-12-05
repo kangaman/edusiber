@@ -3,259 +3,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab 02: Injection Attacks</title>
+    <title>Lab A03: Advanced SQL Injection</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
 
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #1a1a2e; color: #e0e0e0; height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
         
-        /* Layout */
-        .main-container { display: flex; height: 100vh; }
-        .sidebar { width: 320px; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; }
-        .workspace { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        /* SIDEBAR */
+        .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #ef4444; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
 
-        /* Chat Mentor */
-        .chat-area { flex-grow: 1; padding: 20px; overflow-y: auto; font-size: 0.9rem; }
-        .chat-bubble { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #e94560; animation: fadeIn 0.5s; }
-        .chat-bubble.user { background: rgba(13, 110, 253, 0.2); border-left: 3px solid #0d6efd; text-align: right; }
+        /* MAIN AREA */
+        .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; }
         
-        /* Simulation Area */
-        .browser-mockup { background: white; color: #333; border-radius: 8px; overflow: hidden; max-width: 600px; width: 100%; margin: 0 auto; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-        .browser-header { background: #f1f3f4; padding: 10px; border-bottom: 1px solid #ccc; display: flex; align-items: center; }
-        .browser-body { padding: 40px; min-height: 300px; display: flex; flex-direction: column; justify-content: center; }
+        /* BROWSER MOCKUP */
+        .browser { width: 100%; max-width: 900px; background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 600px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; }
+        .browser-bar { background: #f3f4f6; padding: 10px 15px; border-bottom: 1px solid #d1d5db; display: flex; align-items: center; }
+        .url-display { background: #fff; border: 1px solid #d1d5db; border-radius: 20px; padding: 5px 15px; font-family: 'Fira Code', monospace; color: #4b5563; flex-grow: 1; margin-left: 15px; }
+        .app-view { flex-grow: 1; overflow-y: auto; background: #f8fafc; position: relative; }
 
-        /* Code Terminal (Visualisasi Backend) */
-        .code-terminal { 
-            background: #000; color: #0f0; font-family: 'Fira Code', monospace; 
-            padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.85rem; 
-            border: 1px solid #333; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            width: 100%; max-width: 800px; margin: 20px auto 0;
-        }
-        .code-highlight { color: #ffeb3b; font-weight: bold; text-shadow: 0 0 5px rgba(255, 235, 59, 0.5); }
-        .sql-keyword { color: #d63384; font-weight: bold; }
+        /* UI Elements */
+        .news-header { background: #2563eb; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .news-container { padding: 30px; max-width: 800px; margin: 0 auto; }
+        .news-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; transition: transform 0.2s; }
+        .news-title { font-weight: bold; font-size: 1.2rem; color: #1e293b; margin-bottom: 5px; }
+        .news-meta { font-size: 0.8rem; color: #64748b; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
+        /* Error Page (Visual Feedback) */
+        .error-page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff0f0; color: #7f1d1d; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 100; }
+        
+        /* TERMINAL */
+        .terminal { width: 100%; max-width: 900px; background: #020617; color: #38bdf8; font-family: 'Fira Code', monospace; font-size: 0.85rem; border-radius: 8px; border: 1px solid #334155; height: 180px; display: flex; flex-direction: column; }
+        .terminal-header { background: #1e293b; padding: 5px 15px; font-size: 0.75rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
+        .terminal-body { padding: 15px; overflow-y: auto; flex-grow: 1; }
+        .sql-hl { color: #fcd34d; font-weight: bold; }
+        .sql-err { color: #ef4444; font-weight: bold; text-decoration: underline wavy; }
+        .sql-success { color: #22c55e; }
 
-        /* Helpers */
-        .hidden { display: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div class="main-container">
+<div class="lab-wrapper">
     <div class="sidebar">
-        <div class="p-3 border-bottom border-secondary bg-dark text-white">
-            <h6 class="mb-0"><i class="fas fa-terminal me-2"></i>Hacker Console</h6>
-            <small class="text-white-50">Lab 02: Injection</small>
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-danger"><i class="fas fa-database me-2"></i>SQL Injection Master</h5>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/4</span></small>
         </div>
-        <div class="chat-area" id="chatBox">
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Buka Petunjuk (Hint)
+                </button>
+                <div id="hintBox" class="hint-box"></div>
             </div>
-        <div class="p-3 border-top border-secondary">
-            <a href="../index.html" class="btn btn-outline-light btn-sm w-100">
-                <i class="fas fa-arrow-left me-2"></i> Dashboard
-            </a>
+            
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold">Solusi Perbaikan (Remediation)</h6>
+                <div class="bg-black p-3 rounded border border-success small font-monospace text-light mb-3">
+                    <span class="text-secondary">// Gunakan Parameterized Query</span><br>
+                    $stmt = $pdo->prepare("SELECT * FROM news WHERE title LIKE ?");<br>
+                    $stmt->execute([$search]);
+                </div>
+                <button onclick="finishLab()" class="btn btn-success w-100 fw-bold">Simpan & Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary">
+            <a href="../index.html" class="text-white-50 text-decoration-none small">Kembali ke Dashboard</a>
         </div>
     </div>
 
-    <div class="workspace">
-        
-        <div id="stage1" class="w-100">
-            <div class="text-center mb-3">
-                <span class="badge bg-danger">Misi 1/2: SQL Injection</span>
-                <h4 class="fw-bold mt-2">Bypass Halaman Login</h4>
+    <div class="main-area">
+        <div class="browser">
+            <div class="browser-bar">
+                <div class="d-flex gap-1 me-2"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span><span class="rounded-circle bg-success" style="width:10px;height:10px"></span></div>
+                <div class="url-display" id="urlBar">news-portal.local/login</div>
             </div>
-
-            <div class="browser-mockup">
-                <div class="browser-header">
-                    <div class="d-flex gap-2 me-3">
-                        <span class="rounded-circle bg-danger" style="width:10px;height:10px"></span>
-                        <span class="rounded-circle bg-warning" style="width:10px;height:10px"></span>
-                    </div>
-                    <div class="bg-white px-3 py-1 rounded w-100 text-muted small border">
-                        <i class="fas fa-lock me-1"></i> secure-bank.com/admin
+            
+            <div class="app-view">
+                
+                <div id="viewLogin" class="d-flex align-items-center justify-content-center h-100">
+                    <div class="text-center p-5 border rounded shadow-sm bg-white" style="width: 380px;">
+                        <i class="fas fa-user-lock fa-3x text-secondary mb-3"></i>
+                        <h4 class="mb-4 text-dark fw-bold">Admin Login</h4>
+                        <div class="mb-3 text-start">
+                            <label class="small fw-bold text-secondary">Username</label>
+                            <input type="text" id="loginUser" class="form-control" placeholder="admin">
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label class="small fw-bold text-secondary">Password</label>
+                            <input type="password" class="form-control" placeholder="********" disabled>
+                        </div>
+                        <button onclick="checkLogin()" class="btn btn-dark w-100 fw-bold">Sign In</button>
+                        <p id="loginMsg" class="text-danger small mt-2 fw-bold" style="display:none;">
+                            <i class="fas fa-times-circle me-1"></i> Invalid Credentials
+                        </p>
                     </div>
                 </div>
-                <div class="browser-body bg-light">
-                    <h5 class="text-center mb-4"><i class="fas fa-user-shield fa-2x text-primary mb-2"></i><br>Admin Portal</h5>
+
+                <div id="viewSearch" style="display:none; height: 100%;">
+                    <div class="news-header">
+                        <span class="fw-bold"><i class="fas fa-newspaper me-2"></i>Subang News Portal</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-white-50">Welcome, Admin</small>
+                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:30px; height:30px;"><i class="fas fa-user"></i></div>
+                        </div>
+                    </div>
                     
-                    <div class="form-group mb-3">
-                        <label class="small fw-bold">Username</label>
-                        <input type="text" id="sqliInput" class="form-control" placeholder="Masukkan username..." onkeyup="updateSQLView()">
+                    <div class="news-container">
+                        <div class="input-group mb-4 shadow-sm border rounded overflow-hidden">
+                            <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="searchInput" class="form-control border-0 p-3" placeholder="Cari berita (Contoh: Subang)" onkeyup="updateTerminalSearch()">
+                            <button onclick="runSearch()" class="btn btn-primary px-4 fw-bold">Cari</button>
+                        </div>
+                        
+                        <div id="newsResults">
+                            <div class="news-card">
+                                <div class="news-title">Festival Nanas Subang 2025</div>
+                                <div class="news-meta">Author: Admin | Category: Event</div>
+                                <div class="text-dark small">Ribuan warga memadati alun-alun untuk merayakan panen raya...</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group mb-3">
-                        <label class="small fw-bold">Password</label>
-                        <input type="password" class="form-control" placeholder="Biarkan kosong..." disabled>
-                    </div>
-                    <button class="btn btn-primary w-100" onclick="checkSQLi()">Login</button>
-                    <p class="text-danger small mt-2 text-center hidden" id="loginError">Access Denied: Username not found.</p>
-                </div>
-            </div>
 
-            <div class="code-terminal">
-                <div class="text-muted border-bottom border-secondary mb-2 pb-1 small">SERVER-SIDE DATABASE QUERY:</div>
-                <div>
-                    <span class="sql-keyword">SELECT</span> * <span class="sql-keyword">FROM</span> users 
-                    <span class="sql-keyword">WHERE</span> username = '<span id="queryUser" class="code-highlight"></span>';
+                    <div id="errorPage" class="error-page">
+                        <i class="fas fa-exclamation-triangle fa-4x mb-3"></i>
+                        <h2 class="fw-bold">500 Internal Server Error</h2>
+                        <p class="lead">SQL Syntax Error: Unknown column position in 'order clause'.</p>
+                        <button onclick="closeError()" class="btn btn-outline-danger btn-sm mt-3">Kembali</button>
+                    </div>
                 </div>
-                <div class="mt-2 text-white-50 small fst-italic">
-                    <i class="fas fa-info-circle me-1"></i> 
-                    Sistem mengecek: Apakah Username BENAR?
-                </div>
+
             </div>
         </div>
 
-        <div id="stage2" class="w-100 hidden">
-            <div class="text-center mb-3">
-                <span class="badge bg-warning text-dark">Misi 2/2: Cross-Site Scripting (XSS)</span>
-                <h4 class="fw-bold mt-2">Inject Script Berbahaya</h4>
+        <div class="terminal">
+            <div class="terminal-header">
+                <span><i class="fas fa-terminal me-2"></i>SERVER BACKEND LOGS</span>
+                <span class="badge bg-danger">LIVE MONITOR</span>
             </div>
-
-            <div class="browser-mockup">
-                <div class="browser-header">
-                    <div class="bg-white px-3 py-1 rounded w-100 text-muted small border">
-                        forum-diskusi.com/search
-                    </div>
-                </div>
-                <div class="browser-body">
-                    <h5 class="text-center mb-3">Pencarian Forum</h5>
-                    <div class="input-group mb-3">
-                        <input type="text" id="xssInput" class="form-control" placeholder="Cari topik...">
-                        <button class="btn btn-outline-secondary" onclick="checkXSS()">Cari</button>
-                    </div>
-                    <hr>
-                    <div id="searchResult" class="text-center text-muted py-4">
-                        Hasil pencarian akan muncul di sini...
-                    </div>
-                </div>
-            </div>
-             
-             <div class="code-terminal">
-                <div class="text-muted border-bottom border-secondary mb-2 pb-1 small">BROWSER RENDERING SOURCE CODE:</div>
-                <div>
-                    &lt;div&gt; Anda mencari: <span id="xssCodeView" class="code-highlight">...</span> &lt;/div&gt;
-                </div>
-                <div class="mt-2 text-white-50 small fst-italic">
-                    <i class="fas fa-exclamation-triangle me-1"></i> 
-                    Browser akan mengeksekusi apa pun yang dimasukkan ke sini sebagai HTML/JavaScript.
-                </div>
+            <div class="terminal-body" id="terminalLog">
+                <span class="text-secondary">// Server ready. Waiting for requests...</span>
             </div>
         </div>
-
-        <div id="stageWin" class="text-center hidden m-auto">
-            <i class="fas fa-shield-virus fa-5x text-success mb-4"></i>
-            <h2>Lab Selesai!</h2>
-            <p class="lead">Anda telah memahami dasar Injection.</p>
-            <div class="bg-dark text-start p-4 rounded border border-success mx-auto" style="max-width: 500px;">
-                <h6 class="text-success mb-3">Pencegahan (Remediasi):</h6>
-                <ul class="small mb-0 text-white-50">
-                    <li class="mb-2"><strong>Untuk SQLi:</strong> Gunakan <em>Prepared Statements</em> (Parameter Binding). Jangan gabungkan string query secara manual.</li>
-                    <li><strong>Untuk XSS:</strong> Lakukan <em>Sanitization</em> (bersihkan input) dan <em>Encoding</em> (ubah karakter spesial menjadi teks aman) sebelum ditampilkan.</li>
-                </ul>
-            </div>
-            <button onclick="saveAndExit()" class="btn btn-success mt-4 px-5">Simpan & Kembali</button>
-        </div>
-
     </div>
 </div>
 
 <script>
-    // --- CHAT SYSTEM ---
-    function addChat(msg, type='bot') {
-        const box = document.getElementById('chatBox');
-        const bubble = document.createElement('div');
-        bubble.className = `chat-bubble ${type}`;
-        bubble.innerHTML = type === 'bot' ? `<small class="fw-bold text-danger mb-1 d-block">MENTOR</small>${msg}` : msg;
-        box.appendChild(bubble);
-        box.scrollTop = box.scrollHeight;
+    // --- STATE MANAGEMENT ---
+    let level = 1;
+    
+    const missions = [
+        {}, // dummy index 0
+        {
+            badge: "Tahap 1: Login Bypass",
+            title: "Melewati Autentikasi",
+            desc: "Halaman login ini tidak memvalidasi input. Masuklah sebagai admin tanpa password dengan memanipulasi logika SQL (OR TRUE).",
+            hint: "Payload: <code>admin' OR '1'='1</code><br>Ini membuat query menjadi: <code>SELECT ... WHERE user='admin' OR 1=1</code>"
+        },
+        {
+            badge: "Tahap 2: Enumerasi Kolom",
+            title: "Mencari Jumlah Kolom (Error Based)",
+            desc: "Anda berhasil masuk! Fitur pencarian berita ini juga rentan.<br><br>Kita perlu tahu jumlah kolom tabel berita. Gunakan perintah <code>ORDER BY X--</code>.<br><ul><li>Jika X terlalu besar = <strong>ERROR 500</strong></li><li>Jika X sesuai = <strong>Normal</strong></li></ul>Cari angka terbesar yang TIDAK Error.",
+            hint: "1. Coba: <code>' ORDER BY 10--</code> (Lihat apakah Error)<br>2. Coba: <code>' ORDER BY 1--</code> (Harusnya Aman)<br>3. Terus cari batasnya.<br><strong>Jawaban:</strong> Tabel ini memiliki <strong>3</strong> kolom. Payload: <code>' ORDER BY 3--</code>"
+        },
+        {
+            badge: "Tahap 3: Union Injection",
+            title: "Menyuntikkan Data (Union Select)",
+            desc: "Kita tahu ada 3 kolom. Gunakan <code>UNION SELECT</code> untuk melihat kolom mana yang ditampilkan di layar browser.<br><br>Kita akan menggabungkan hasil berita dengan angka 1, 2, 3.",
+            hint: "Payload: <code>' UNION SELECT 1,2,3--</code><br>Perhatikan angka berapa yang muncul menjadi Judul Berita?"
+        },
+        {
+            badge: "Tahap 4: Dump Data",
+            title: "Mengambil Data User",
+            desc: "Angka 2 muncul sebagai Judul. Artinya kolom ke-2 bocor ke layar.<br><br>Ganti angka 2 dengan <code>username</code> dan angka 3 dengan <code>password</code> dari tabel <code>users</code>.",
+            hint: "Payload: <code>' UNION SELECT 1,username,password FROM users--</code>"
+        },
+        {
+            badge: "Mission Complete",
+            title: "Database Dumped!",
+            desc: "<strong>SUKSES!</strong><br>Anda berhasil menampilkan data sensitif (username & password) di halaman berita publik. Ini adalah serangan SQL Injection tingkat lanjut.",
+            hint: "Lab selesai."
+        }
+    ];
+
+    function renderMission() {
+        if(level > 4) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/4";
+        document.getElementById('missionDisplay').innerHTML = `
+            <span class="level-badge">${m.badge}</span>
+            <div class="mission-card">
+                <h5 class="fw-bold mb-3 text-white">${m.title}</h5>
+                <p class="small text-light opacity-75">${m.desc}</p>
+            </div>
+        `;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = m.hint;
     }
 
-    // --- INIT ---
-    setTimeout(() => {
-        addChat("Selamat datang di Lab Injection.");
-        addChat("Misi 1: Kita akan membobol halaman login tanpa password. Perhatikan 'Terminal' di bawah browser.");
-        addChat("Ketik nama apapun di kolom Username, lihat bagaimana Query Database di bawah berubah.");
-    }, 500);
+    function toggleHint() {
+        const box = document.getElementById('hintBox');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
 
-    // --- LOGIC STAGE 1: SQLi ---
-    function updateSQLView() {
-        const input = document.getElementById('sqliInput').value;
-        const view = document.getElementById('queryUser');
-        view.innerText = input;
+    // --- STAGE 1: LOGIN ---
+    function checkLogin() {
+        const u = document.getElementById('loginUser').value;
+        const log = document.getElementById('terminalLog');
         
-        // Edukasi Visual: Warnai quote jika user mengetik '
-        if(input.includes("'")) {
-            view.style.color = "red"; // Tanda bahaya visual
+        log.innerHTML = `<div>Query: <span class="text-white">SELECT * FROM admins WHERE user = '${u}' AND pass = '...'</span></div>`;
+
+        // Check Payload
+        if(u.includes("' OR '1'='1") || u.toLowerCase().includes("' or 1=1")) {
+            log.innerHTML += `<div class="sql-success fw-bold">// LOGIN BYPASS SUCCESS (Logic returns TRUE)</div>`;
+            
+            // Auto Switch View (SPA Feel)
+            setTimeout(() => {
+                level = 2;
+                renderMission();
+                document.getElementById('viewLogin').style.display = 'none';
+                document.getElementById('viewSearch').style.display = 'block';
+                document.getElementById('urlBar').innerText = "news-portal.local/admin/search";
+                // Reset Log for next stage
+                log.innerHTML = `<span class="text-secondary">// Logged in as Admin. Search engine ready.</span>`;
+            }, 800);
         } else {
-            view.style.color = "#ffeb3b";
+            document.getElementById('loginMsg').style.display = 'block';
+            log.innerHTML += `<div class="sql-err">// LOGIN FAILED (User not found)</div>`;
         }
     }
 
-    let hintShown = false;
+    // --- STAGE 2-4: SEARCH ---
+    function updateTerminalSearch() {
+        const val = document.getElementById('searchInput').value;
+        document.getElementById('terminalLog').innerHTML = `<div>Query: <span class="text-white">SELECT * FROM news WHERE title LIKE '%<span class="sql-hl">${val}</span>%'</span></div>`;
+    }
 
-    function checkSQLi() {
-        const input = document.getElementById('sqliInput').value;
-        // Logika sederhana simulasi SQL Injection
-        // User menang jika menutup quote (') lalu memberikan pernyataan TRUE (OR 1=1)
-        
-        // Regex cek pola: ' OR ... = ...
-        const pattern = /'\s*or\s*'?\d+'?\s*=\s*'?\d+/i; 
-        
-        if (pattern.test(input) || input.includes("' OR '1'='1")) {
-            // MENANG STAGE 1
-            document.getElementById('loginError').classList.add('hidden');
-            addChat(`Input: ${input}`, 'user');
-            addChat("<strong>SUKSES!</strong> Query menjadi TRUE karena '1'='1'. Anda masuk sebagai Admin.");
+    function closeError() {
+        document.getElementById('errorPage').style.display = 'none';
+    }
+
+    function runSearch() {
+        const val = document.getElementById('searchInput').value.trim();
+        const res = document.getElementById('newsResults');
+        const log = document.getElementById('terminalLog');
+        const errorPage = document.getElementById('errorPage');
+
+        // LOGIC PENGECEKAN ORDER BY (REGEX FIX)
+        // Mengecek pola: ' order by [angka]--
+        const orderByMatch = val.match(/'\s*order\s+by\s+(\d+)/i);
+
+        // 1. CEK ORDER BY (LEVEL 2)
+        if (orderByMatch) {
+            const num = parseInt(orderByMatch[1]);
             
-            setTimeout(() => {
-                document.getElementById('stage1').classList.add('hidden');
-                document.getElementById('stage2').classList.remove('hidden');
-                addChat("--------------------------------");
-                addChat("Misi 2: Cross-Site Scripting (XSS).");
-                addChat("Website ini menampilkan apapun yang Anda cari tanpa filter. Coba buat browser memunculkan <em>Alert Popup</em> dengan tag <code>&lt;script&gt;</code> atau <code>&lt;img&gt;</code>.");
-            }, 2000);
-        } else {
-            // GAGAL
-            document.getElementById('loginError').classList.remove('hidden');
-            addChat(`Mencoba login dengan user: ${input}`, 'user');
+            if (num > 3) {
+                // ERROR 500 Simulation
+                errorPage.style.display = 'flex';
+                log.innerHTML += `<div class="sql-err fw-bold">// ERROR 500: Unknown column '${num}' in 'order clause'</div>`;
+            } else {
+                // SUCCESS Sorting
+                res.innerHTML = `<div class="alert alert-info border-info text-dark"><i class="fas fa-check me-2"></i>Query Executed Successfully (Sorted by Col ${num})</div>`;
+                log.innerHTML += `<div class="sql-success">// SORTING OK. Column ${num} exists.</div>`;
+                
+                // Jika user menebak 3 dengan benar di level 2
+                if (num === 3 && level === 2) {
+                    setTimeout(() => {
+                        alert("Bagus! Anda menemukan bahwa tabel memiliki 3 kolom (karena 4 error).");
+                        level = 3;
+                        renderMission();
+                    }, 500);
+                }
+            }
+        }
+        
+        // 2. CEK UNION SELECT (LEVEL 3)
+        else if (val.toLowerCase().includes('union select 1,2,3')) {
+            res.innerHTML = `
+                <div class="news-card border border-danger">
+                    <div class="news-title text-danger fw-bold fs-1">2</div>
+                    <div class="news-meta">Author: 1 | Category: 3</div>
+                    <div class="text-dark">Data dari UNION SELECT berhasil disuntikkan ke tampilan.</div>
+                </div>`;
+            log.innerHTML += `<div class="text-warning fw-bold">// INJECTION SUCCESS: Dummy data displayed.</div>`;
             
-            if(!hintShown) {
+            if(level === 3) {
                 setTimeout(() => {
-                    addChat("ðŸ’¡ <strong>Petunjuk:</strong> Kita perlu 'menutup' string query dengan tanda kutip tunggal (<code>'</code>), lalu tambahkan logika <code>OR '1'='1</code> agar database bingung.");
-                    addChat("Coba copy ini: <strong>admin' OR '1'='1</strong>");
-                    hintShown = true;
-                }, 2000);
+                    alert("Lihat! Angka '2' muncul sebagai Judul. Di situlah kita akan memanggil data rahasia.");
+                    level = 4;
+                    renderMission();
+                }, 500);
+            }
+        }
+
+        // 3. CEK DUMP DATA (LEVEL 4)
+        else if (val.toLowerCase().includes('username,password from users')) {
+            res.innerHTML = `
+                <div class="news-card border border-danger">
+                    <div class="news-title text-danger">admin_subang</div>
+                    <div class="news-meta">Password Hash:</div>
+                    <div class="text-dark fw-bold font-monospace bg-light p-2 rounded">rahasia_negara_2025</div>
+                </div>
+                <div class="news-card border border-danger">
+                    <div class="news-title text-danger">budi_editor</div>
+                    <div class="news-meta">Password Hash:</div>
+                    <div class="text-dark fw-bold font-monospace bg-light p-2 rounded">budi123</div>
+                </div>`;
+            log.innerHTML += `<div class="sql-err fw-bold bg-danger text-white p-1">// CRITICAL: TABLE 'USERS' DUMPED!</div>`;
+            
+            if(level === 4) {
+                level = 5;
+                renderMission();
+                document.getElementById('remediationSection').style.display = 'block';
+                // Scroll Sidebar
+                document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+            }
+        }
+
+        // NORMAL SEARCH
+        else {
+            if(val === '') {
+                // Default View
+                res.innerHTML = `
+                    <div class="news-card">
+                        <div class="news-title">Festival Nanas Subang 2025</div>
+                        <div class="news-meta">Author: Admin | Category: Event</div>
+                        <div class="text-dark small">Ribuan warga memadati alun-alun...</div>
+                    </div>`;
+            } else {
+                res.innerHTML = `<div class="text-center p-5 text-muted">Tidak ada berita dengan kata kunci '${val}'</div>`;
             }
         }
     }
 
-    // --- LOGIC STAGE 2: XSS ---
-    function checkXSS() {
-        const input = document.getElementById('xssInput').value;
-        document.getElementById('xssCodeView').innerText = input;
-        document.getElementById('searchResult').innerHTML = "Hasil pencarian: " + input; // Vulnerable implementation simulation
-
-        // Cek Payload XSS
-        const xssPattern = /<script>|<img.*onerror|<svg.*onload/i;
-
-        if(xssPattern.test(input)) {
-            // Simulasi Alert Browser
-            alert("XSS SUCCESS! Script Anda berhasil dieksekusi oleh browser.");
-            
-            addChat("Payload XSS berhasil dieksekusi!", 'user');
-            document.getElementById('stage2').classList.add('hidden');
-            document.getElementById('stageWin').classList.remove('hidden');
-            addChat("Luar biasa. Anda telah menyelesaikan modul Injection.");
-        } else {
-            addChat(`Mencari: ${input}`, 'user');
-            addChat("Teks muncul biasa saja. Coba masukkan tag HTML. Contoh: <code>&lt;img src=x onerror=alert(1)&gt;</code>");
-        }
-    }
-
-    function saveAndExit() {
-        localStorage.setItem('sim_a03', 'done'); // Update kunci jadi a03 (sesuai urutan OWASP)
+    function finishLab() {
+        localStorage.setItem('sim_a03', 'done');
         window.location.href = '../index.html';
     }
+
+    // Init
+    renderMission();
 </script>
 
 </body>
