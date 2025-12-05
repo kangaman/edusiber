@@ -16,6 +16,7 @@
     </script>
 
     <style>
+        /* BASE STYLES */
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
         .lab-wrapper { display: flex; height: 100vh; }
         
@@ -23,10 +24,17 @@
         .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
         .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
         .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        
         .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #be123c; border: 1px solid #f43f5e; color: #ffe4e6; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
         .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #f43f5e; animation: fadeIn 0.5s; }
         .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
-        .code-snippet { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
+        
+        /* CODE REMEDIATION STYLES */
+        .code-display { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; color: #a5b4fc; display: none; }
+        .code-display.active { display: block; }
+        .code-comment { color: #6b7280; font-style: italic; }
+        .code-bad { color: #f87171; }
+        .code-good { color: #4ade80; }
 
         /* MAIN AREA */
         .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; }
@@ -35,16 +43,14 @@
         .browser { background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 50%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #475569; position: relative; }
         .browser-bar { background: #f1f5f9; padding: 8px 15px; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; }
         .url-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 15px; flex-grow: 1; margin-left: 15px; font-size: 0.85rem; color: #64748b; font-family: monospace; }
-        .app-view { flex-grow: 1; background: #f8fafc; padding: 20px; overflow-y: auto; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .app-view { flex-grow: 1; background: #f8fafc; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
         .login-box { width: 320px; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
         .response-msg { font-size: 0.8rem; margin-top: 10px; text-align: center; display: none; }
 
-        /* PIN INPUT UI */
-        .pin-display { font-size: 2rem; letter-spacing: 10px; text-align: center; margin-bottom: 15px; font-family: monospace; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: #f9f9f9; }
-
         /* ATTACK TOOL */
-        .attack-tool { flex: 1; background: #020617; border: 1px solid #1e293b; border-radius: 8px; display: flex; flex-direction: column; font-family: 'JetBrains Mono', monospace; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+        .attack-tool { flex: 1; background: #020617; border: 1px solid #1e293b; border-radius: 8px; display: flex; flex-direction: column; font-family: 'JetBrains Mono', monospace; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); opacity: 0.6; pointer-events: none; transition: all 0.3s; }
+        .attack-tool.active { opacity: 1; pointer-events: auto; border-color: #f43f5e; }
         .tool-header { background: #1e293b; padding: 10px; color: #f43f5e; font-size: 0.8rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
         .tool-body { padding: 20px; display: flex; gap: 20px; height: 100%; }
         
@@ -52,11 +58,16 @@
         .log-panel { width: 60%; background: #000; border-radius: 5px; padding: 10px; overflow-y: auto; font-size: 0.8rem; color: #22c55e; max-height: 200px; }
         
         .tool-input { background: #0f172a; border: 1px solid #334155; color: white; padding: 5px; width: 100%; font-size: 0.8rem; }
-        .wordlist-select { background: #0f172a; border: 1px solid #334155; color: white; padding: 5px; width: 100%; font-size: 0.8rem; height: 30px; }
-
+        .wordlist-select { background: #0f172a; border: 1px solid #334155; color: white; padding: 5px; width: 100%; font-size: 0.8rem; height: 35px; }
+        
+        /* Button States */
+        #btnAttack:disabled { background: #334155; border-color: #475569; color: #94a3b8; cursor: not-allowed; }
+        #btnAttack:enabled { background: #dc2626; border-color: #ef4444; color: white; cursor: pointer; animation: pulse 2s infinite; }
+        
         .status-success { color: #22c55e; font-weight: bold; }
         .status-fail { color: #ef4444; }
-        
+
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -80,18 +91,55 @@
 
             <div id="remediationSection" style="display: none;">
                 <hr class="border-secondary my-4">
-                <h6 class="text-success fw-bold">Rekomendasi Keamanan</h6>
-                <div class="bg-black p-3 rounded border border-success small font-monospace text-light mb-3">
-                    <span class="text-secondary">// 1. No Username Enumeration</span><br>
-                    Respon harus generik: "Email reset terkirim (jika akun ada)."<br><br>
-                    <span class="text-secondary">// 2. Account Lockout</span><br>
-                    Kunci akun setelah 5x gagal.<br><br>
-                    <span class="text-success">// 3. Strong 2FA</span><br>
-                    Gunakan Authenticator App, bukan PIN statis.
+                <h6 class="text-success fw-bold"><i class="fas fa-code-branch me-2"></i>Analisis Kerentanan</h6>
+                <p class="small text-secondary mb-3">Sistem ini jebol karena 3 kesalahan fatal. Pelajari cara memperbaikinya:</p>
+                
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Kode Rentan</button>
+                    <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Kode Aman</button>
                 </div>
-                <button onclick="finishLab()" class="btn btn-success w-100 fw-bold">Selesai</button>
+
+                <div id="codeVuln" class="code-display active">
+<span class="code-comment">// 1. ENUMERASI USERNAME</span>
+if (!$user) {
+    <span class="code-bad">die("User tidak ditemukan");</span> <span class="code-comment">// Info bocor!</span>
+}
+
+<span class="code-comment">// 2. NO RATE LIMITING</span>
+if ($pass !== $db_pass) {
+    <span class="code-bad">// Tidak ada counter gagal</span>
+    die("Password salah");
+}
+
+<span class="code-comment">// 3. WEAK MFA (PIN)</span>
+if ($input_pin !== "1234") {
+    die("PIN Salah"); 
+    <span class="code-comment">// PIN 4 digit mudah di-bruteforce</span>
+}
+                </div>
+
+                <div id="codeSecure" class="code-display">
+<span class="code-comment">// 1. GENERIC ERROR</span>
+if (!$user || !$pass_match) {
+    <span class="code-good">die("Username atau Password Salah");</span>
+}
+
+<span class="code-comment">// 2. RATE LIMITING (Throttling)</span>
+if ($failed_attempts > 5) {
+    <span class="code-good">die("Akun dikunci selama 15 menit");</span>
+}
+
+<span class="code-comment">// 3. STRONG MFA (TOTP)</span>
+// Gunakan Google Authenticator
+if (!verifyTOTP($user_secret, $input_code)) {
+    die("Kode 2FA Invalid");
+}
+                </div>
+
+                <button onclick="finishLab()" class="btn btn-success w-100 mt-4 fw-bold">Selesai & Keluar</button>
             </div>
         </div>
+        
         <div class="p-3 bg-black text-center border-top border-secondary">
             <a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a>
         </div>
@@ -105,19 +153,14 @@
                 <div class="url-box" id="urlDisplay">admin.portal.local/login</div>
             </div>
             <div class="app-view">
-                
                 <div id="pageLogin" class="login-box">
-                    <div class="text-center mb-3">
-                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
-                        <h5 class="fw-bold mt-2">Admin Portal</h5>
-                    </div>
-                    <div class="mb-2"><label class="small fw-bold">Username</label><input type="text" id="targetUser" class="form-control form-control-sm"></div>
+                    <div class="text-center mb-3"><i class="fas fa-shield-alt fa-3x text-primary"></i><h5 class="fw-bold mt-2">Admin Portal</h5></div>
+                    <div class="mb-2"><label class="small fw-bold">Username</label><input type="text" id="targetUser" class="form-control form-control-sm" placeholder="admin"></div>
                     <div class="mb-3"><label class="small fw-bold">Password</label><input type="password" id="targetPass" class="form-control form-control-sm"></div>
                     <button onclick="manualLogin()" class="btn btn-primary w-100 btn-sm fw-bold">Login</button>
                     <div class="text-center mt-2"><a href="#" onclick="showPage('pageForgot')" class="small">Lupa Password?</a></div>
                     <div id="loginMsg" class="response-msg text-danger"></div>
                 </div>
-
                 <div id="pageForgot" class="login-box" style="display:none;">
                     <div class="text-center mb-3"><h6 class="fw-bold">Recovery Akun</h6><p class="small text-muted">Cek ketersediaan username.</p></div>
                     <input type="text" id="checkUser" class="form-control form-control-sm mb-3" placeholder="Username...">
@@ -125,108 +168,51 @@
                     <div id="forgotMsg" class="response-msg"></div>
                     <div class="text-center mt-2"><a href="#" onclick="showPage('pageLogin')" class="small">Kembali</a></div>
                 </div>
-
                 <div id="pagePin" class="login-box" style="display:none;">
-                    <div class="text-center mb-3">
-                        <i class="fas fa-lock fa-2x text-warning"></i>
-                        <h6 class="fw-bold mt-2">Security PIN</h6>
-                        <p class="small text-muted">Masukkan 4 digit PIN tambahan.</p>
-                    </div>
+                    <div class="text-center mb-3"><i class="fas fa-lock fa-2x text-warning"></i><h6 class="fw-bold mt-2">Security PIN</h6><p class="small text-muted">Masukkan 4 digit PIN.</p></div>
                     <input type="text" id="pinInput" class="form-control text-center letter-spacing-2 mb-3" maxlength="4" placeholder="----">
                     <button onclick="checkPin()" class="btn btn-warning w-100 btn-sm fw-bold">Verifikasi</button>
                     <div id="pinMsg" class="response-msg text-danger"></div>
                 </div>
-
-                <div id="pageSuccess" class="text-center p-5" style="display:none;">
-                    <i class="fas fa-unlock-alt fa-4x text-success mb-3"></i>
-                    <h2 class="fw-bold">ACCESS GRANTED</h2>
-                    <p>Selamat! Anda telah menguasai sistem.</p>
-                </div>
-
+                <div id="pageSuccess" class="text-center p-5" style="display:none;"><i class="fas fa-unlock-alt fa-4x text-success mb-3"></i><h2 class="fw-bold">ACCESS GRANTED</h2><p>Selamat! Anda telah menguasai sistem.</p></div>
             </div>
         </div>
 
-        <div class="attack-tool">
-            <div class="tool-header">
-                <span><i class="fas fa-terminal me-2"></i>BRUTE FORCE CONSOLE</span>
-                <span id="toolStatus" class="badge bg-secondary">IDLE</span>
-            </div>
+        <div id="attackTool" class="attack-tool">
+            <div class="tool-header"><span><i class="fas fa-terminal me-2"></i>BRUTE FORCE CONSOLE</span><span id="toolStatus" class="badge bg-secondary">LOCKED</span></div>
             <div class="tool-body">
                 <div class="config-panel">
-                    <label class="small text-secondary fw-bold">Target:</label>
-                    <input type="text" id="toolTarget" class="tool-input mb-2" placeholder="Username..." disabled>
-                    
+                    <label class="small text-secondary fw-bold">Target User:</label>
+                    <input type="text" id="toolTarget" class="tool-input mb-2" placeholder="e.g. admin" disabled>
                     <label class="small text-secondary fw-bold">Mode:</label>
-                    <select id="toolMode" class="wordlist-select mb-2" onchange="updateToolUI()">
-                        <option value="pass">Password Attack (Wordlist)</option>
-                        <option value="pin">PIN Cracking (4-Digit)</option>
-                    </select>
-
+                    <select id="toolMode" class="wordlist-select mb-2" onchange="updateToolUI()" disabled><option value="pass">Password Attack</option><option value="pin">PIN Cracking</option></select>
                     <label class="small text-secondary fw-bold">Wordlist:</label>
-                    <select id="toolWordlist" class="wordlist-select mb-3" disabled>
-                        <option value="">-- Select --</option>
-                        <option value="rockyou">rockyou.txt (Top 1000)</option>
-                        <option value="pins">4-digit-pins.txt (0000-9999)</option>
-                    </select>
+                    <select id="toolWordlist" class="wordlist-select mb-3" disabled><option value="">-- Select --</option><option value="rockyou">rockyou.txt (Top 1000)</option><option value="pins">4-digit-pins.txt</option></select>
                     
+                    <div id="configStatus" class="small text-danger mb-2" style="height: 20px;"></div>
                     <button id="btnAttack" onclick="startAttack()" class="btn btn-danger btn-sm w-100 fw-bold" disabled>START ATTACK</button>
                 </div>
-                <div class="log-panel" id="attackLog">
-                    <span class="text-secondary">> System ready...</span>
-                </div>
+                <div class="log-panel" id="attackLog"><span class="text-secondary">> Tool locked. Complete Level 2 to unlock...</span></div>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // --- GAME DATA ---
     const targetUser = "administrator";
     const targetPass = "dragon";
     const targetPin = "1337";
     let level = 1;
 
-    // --- MISSIONS ---
     const missions = [
         {},
-        {
-            badge: "Tahap 1: Reconnaissance",
-            title: "Enumerasi Username",
-            desc: "Fitur 'Lupa Password' seringkali membocorkan apakah sebuah username valid atau tidak (User Enumeration).<br><br>1. Masuk ke menu 'Lupa Password'.<br>2. Coba: <code>admin</code> (Invalid).<br>3. Coba: <code>administrator</code> (Valid).",
-            hint: "Jika respon server berbeda (Merah vs Hijau), berarti sistem rentan."
-        },
-        {
-            badge: "Tahap 2: Manual Testing",
-            title: "Cek Password Default",
-            desc: "Username ditemukan: <strong>administrator</strong>.<br>Sebelum menggunakan alat otomatis, hacker selalu mencoba password default secara manual.<br><br>Kembali ke Login. Coba username <code>administrator</code> dengan password <code>admin123</code> atau <code>password</code>.",
-            hint: "Cobalah login manual. Pasti gagal, tapi ini prosedur standar."
-        },
-        {
-            badge: "Tahap 3: Setup Tool",
-            title: "Konfigurasi Brute Force",
-            desc: "Manual gagal. Waktunya otomatisasi.<br><br>Di panel bawah (Attack Tool):<br>1. Isi Target: <code>administrator</code><br>2. Mode: <strong>Password Attack</strong><br>3. Wordlist: <strong>rockyou.txt</strong>",
-            hint: "Pastikan semua kolom terisi sebelum tombol Start aktif."
-        },
-        {
-            badge: "Tahap 4: Password Cracking",
-            title: "Menjalankan Serangan",
-            desc: "Konfigurasi siap. Klik <strong>START ATTACK</strong>.<br><br>Alat akan mencoba ratusan password per detik hingga menemukan yang cocok.",
-            hint: "Tunggu hingga muncul tulisan hijau [SUCCESS]."
-        },
-        {
-            badge: "Tahap 5: 2FA Bypass",
-            title: "PIN Cracking",
-            desc: "Password didapat: <strong>dragon</strong>. Coba login manual.<br><br>Ups! Ada PIN 4 digit. Karena PIN hanya angka, kita bisa menjebolnya dengan cepat.<br><br>Di Attack Tool:<br>1. Ubah Mode ke <strong>PIN Cracking</strong>.<br>2. Klik Start Attack lagi.",
-            hint: "Jangan lupa login dulu dengan password 'dragon' untuk melihat halaman PIN, baru jalankan tool."
-        },
-        {
-            badge: "Tahap 6: Full Access",
-            title: "Login Final",
-            desc: "PIN ditemukan: <strong>1337</strong>.<br><br>Masukkan PIN tersebut ke halaman login untuk mendapatkan akses penuh ke sistem.",
-            hint: "Masukkan 1337 lalu klik Verifikasi."
-        },
-        { badge: "Mission Complete", title: "Sistem Dikuasai", desc: "Anda berhasil melewati 2 lapisan keamanan karena password lemah dan PIN pendek.", hint: "Selesai." }
+        { badge: "Tahap 1: Enumerasi", title: "Mencari Username", desc: "Gunakan fitur 'Lupa Password' untuk mencari username yang valid.<br><br>1. Masuk menu Lupa Password.<br>2. Cek: <code>admin</code> (Invalid).<br>3. Cek: <code>administrator</code> (Valid).", hint: "Respon 'Link reset terkirim' artinya username valid." },
+        { badge: "Tahap 2: Manual Testing", title: "Cek Password Default", desc: "Username: <strong>administrator</strong>.<br>Kembali ke Login. Coba login manual dengan password asal.<br><br>Ini wajib dilakukan agar kita tahu pesan errornya sebelum memakai alat.", hint: "Login manual harus gagal dulu untuk membuka alat Attack." },
+        { badge: "Tahap 3: Konfigurasi Alat", title: "Setup Brute Force", desc: "Login gagal. Alat di bawah sekarang <strong>TERBUKA</strong>.<br><br>1. Target User: <code>administrator</code><br>2. Wordlist: <strong>rockyou.txt</strong><br>3. Klik START.", hint: "Pastikan ejaan 'administrator' benar." },
+        { badge: "Tahap 4: Password Cracking", title: "Jalankan Serangan", desc: "Tunggu hingga alat menemukan password.", hint: "Password yang ditemukan akan berwarna hijau." },
+        { badge: "Tahap 5: 2FA Bypass", title: "PIN Cracking", desc: "Password: <strong>dragon</strong>. Login manual sekarang.<br><br>Ups! Ada PIN. Kembali ke Tool:<br>1. Ubah Mode ke <strong>PIN Cracking</strong>.<br>2. Start Attack lagi.", hint: "Login browser dulu sampai halaman PIN muncul." },
+        { badge: "Tahap 6: Full Access", title: "Login Final", desc: "PIN: <strong>1337</strong>. Masukkan PIN untuk akses penuh.", hint: "Masukkan 1337." },
+        { badge: "Mission Complete", title: "Sistem Dikuasai", desc: "Anda berhasil masuk.", hint: "Selesai." }
     ];
 
     function renderMission() {
@@ -237,147 +223,135 @@
         document.getElementById('hintBox').style.display = 'none';
         document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
         
-        // Unlock Logic
         if(level >= 3) {
-            document.getElementById('toolUser').disabled = false;
+            const tool = document.getElementById('attackTool');
+            tool.classList.add('active');
+            document.getElementById('toolStatus').className = "badge bg-success";
+            document.getElementById('toolStatus').innerText = "ONLINE";
             document.getElementById('toolTarget').disabled = false;
+            document.getElementById('toolMode').disabled = false;
             document.getElementById('toolWordlist').disabled = false;
+            // Hanya reset log jika belum ada proses
+            if(document.getElementById('attackLog').innerText.includes("locked")) {
+                document.getElementById('attackLog').innerHTML = "<span class='text-success'>> System Ready. Configure target...</span>";
+            }
         }
     }
 
-    function toggleHint() {
-        const box = document.getElementById('hintBox');
-        box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
-
-    // --- BROWSER NAVIGATION ---
+    function toggleHint() { const box = document.getElementById('hintBox'); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
     function showPage(pageId) {
         ['pageLogin', 'pageForgot', 'pagePin', 'pageSuccess'].forEach(p => document.getElementById(p).style.display = 'none');
         document.getElementById(pageId).style.display = 'block';
-        // Reset messages
         document.querySelectorAll('.response-msg').forEach(el => el.style.display = 'none');
     }
 
-    // --- STAGE 1: ENUMERATION ---
     function checkUsername() {
-        const u = document.getElementById('checkUser').value.toLowerCase();
+        const u = document.getElementById('checkUser').value.toLowerCase().trim();
         const msg = document.getElementById('forgotMsg');
         msg.style.display = 'block';
-        
         if(u === targetUser) {
             msg.className = "response-msg text-success fw-bold";
-            msg.innerHTML = "Link reset terkirim ke email!";
-            if(level === 1) { level = 2; renderMission(); }
+            msg.innerHTML = "Link reset terkirim!";
+            if(level === 1) { setTimeout(() => { alert("Username Valid! Lanjut Tahap 2."); level = 2; renderMission(); showPage('pageLogin'); }, 1000); }
         } else {
             msg.className = "response-msg text-danger";
-            msg.innerHTML = "Error: User tidak ditemukan.";
+            msg.innerHTML = "User tidak ditemukan.";
         }
     }
 
-    // --- STAGE 2 & 6: MANUAL LOGIN ---
     function manualLogin() {
-        const u = document.getElementById('targetUser').value;
+        const u = document.getElementById('targetUser').value.trim();
         const p = document.getElementById('targetPass').value;
         const msg = document.getElementById('loginMsg');
         msg.style.display = 'block';
 
         if(u === targetUser && p === targetPass) {
             showPage('pagePin');
-            if(level === 2) { level = 3; renderMission(); } // Failed manual, move to tool setup
-            if(level === 4) { level = 5; renderMission(); } // Got pass, now pin
+            if(level === 4) { level = 5; renderMission(); alert("Berhasil login! Tapi ada PIN. Kembali ke Alat Attack."); }
         } else {
-            msg.innerHTML = "Login Gagal: Username/Password salah.";
+            msg.innerHTML = "Login Gagal.";
             if(level === 2) { 
-                // Simulasi gagal manual -> trigger level 3
-                setTimeout(() => { alert("Manual gagal. Mari gunakan alat Brute Force."); level = 3; renderMission(); }, 500);
+                setTimeout(() => { alert("Login Manual Gagal. Alat Brute Force Terbuka."); level = 3; renderMission(); }, 500);
             }
         }
     }
 
-    // --- STAGE 5 & 6: PIN ---
     function checkPin() {
-        const pin = document.getElementById('pinInput').value;
-        if(pin === targetPin) {
+        if(document.getElementById('pinInput').value === targetPin) {
             showPage('pageSuccess');
-            if(level === 5 || level === 6) { 
-                level = 7; 
-                renderMission(); 
-                document.getElementById('remediationSection').style.display = 'block';
-                document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
-            }
+            if(level === 6) { level = 7; renderMission(); document.getElementById('remediationSection').style.display = 'block'; }
         } else {
             document.getElementById('pinMsg').style.display = 'block';
             document.getElementById('pinMsg').innerText = "PIN Salah.";
         }
     }
 
-    // --- ATTACK TOOL LOGIC ---
+    // --- TOOL LOGIC & VALIDATION ---
+    document.getElementById('toolTarget').addEventListener('keyup', checkConfig);
+    document.getElementById('toolWordlist').addEventListener('change', checkConfig);
+
     function updateToolUI() {
-        // Auto select wordlist based on mode to help user
         const mode = document.getElementById('toolMode').value;
         const wl = document.getElementById('toolWordlist');
-        if(mode === 'pass') wl.value = 'rockyou'; 
-        else wl.value = 'pins';
-        
-        // Enable button logic
+        if(mode === 'pass') wl.value = 'rockyou'; else wl.value = 'pins';
         checkConfig();
     }
 
-    // Listeners for config
-    document.getElementById('toolTarget').addEventListener('input', checkConfig);
-    document.getElementById('toolWordlist').addEventListener('change', checkConfig);
-
     function checkConfig() {
-        const t = document.getElementById('toolTarget').value;
+        const t = document.getElementById('toolTarget').value.trim().toLowerCase();
         const w = document.getElementById('toolWordlist').value;
         const btn = document.getElementById('btnAttack');
-        
-        if(t === targetUser && w !== "") btn.disabled = false;
-        else btn.disabled = true;
+        const status = document.getElementById('configStatus');
+
+        if(t === targetUser && w !== "") {
+            btn.disabled = false;
+            status.innerHTML = "";
+        } else {
+            btn.disabled = true;
+            if(t !== "" && t !== targetUser) status.innerHTML = "Error: Target User mismatch!";
+            else if(w === "") status.innerHTML = "Error: Select Wordlist!";
+            else status.innerHTML = "";
+        }
     }
 
     function startAttack() {
         const mode = document.getElementById('toolMode').value;
         const log = document.getElementById('attackLog');
-        const status = document.getElementById('toolStatus');
+        const btn = document.getElementById('btnAttack');
         
-        status.className = "badge bg-warning text-dark";
-        status.innerText = "RUNNING";
+        btn.disabled = true;
         log.innerHTML = "";
         
-        let attempts = [];
-        let success = "";
-        
-        if(mode === 'pass') {
-            attempts = ["123456", "password", "admin123", "qwerty", "iloveyou", "dragon"];
-            success = targetPass;
-        } else {
-            attempts = ["0000", "1234", "1111", "2020", "2025", "1337"];
-            success = targetPin;
-        }
-
+        let attempts = mode === 'pass' ? ["123456", "password", "admin123", "dragon"] : ["0000", "1234", "1111", "1337"];
+        let success = mode === 'pass' ? targetPass : targetPin;
         let i = 0;
+
         const interval = setInterval(() => {
             const current = attempts[i];
-            
             if(current === success) {
                 clearInterval(interval);
-                log.innerHTML += `<div class='status-success'>[SUCCESS] FOUND: ${current}</div>`;
-                status.className = "badge bg-success";
-                status.innerText = "CRACKED";
-                
-                if(level === 3 && mode === 'pass') { level = 4; renderMission(); }
-                if(level === 5 && mode === 'pin') { level = 6; renderMission(); }
+                log.innerHTML += `<div class='status-success'>[FOUND] ${current}</div>`;
+                log.scrollTop = log.scrollHeight;
+                if(level === 3 && mode === 'pass') { level = 4; renderMission(); alert("Password: dragon. Login manual sekarang."); }
+                if(level === 5 && mode === 'pin') { level = 6; renderMission(); alert("PIN: 1337. Masukkan PIN sekarang."); }
+                btn.disabled = false;
             } else {
-                log.innerHTML += `<div class='status-fail'>[FAIL] Trying: ${current}</div>`;
+                log.innerHTML += `<div class='status-fail'>[TRY] ${current}</div>`;
+                log.scrollTop = log.scrollHeight;
             }
-            log.scrollTop = log.scrollHeight;
             i++;
-        }, 400);
+        }, 500);
+    }
+
+    function showCode(type) {
+        document.getElementById('codeVuln').classList.remove('active');
+        document.getElementById('codeSecure').classList.remove('active');
+        if(type === 'vuln') document.getElementById('codeVuln').classList.add('active');
+        else document.getElementById('codeSecure').classList.add('active');
     }
 
     function finishLab() { localStorage.setItem('sim_a07', 'done'); window.location.href = '../index.html'; }
-
+    
     renderMission();
 </script>
 </body>
