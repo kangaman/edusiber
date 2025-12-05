@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab 01: IDOR - Advanced Scenario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #e9ecef; height: 100vh; overflow: hidden; }
+        
+        /* Layout Split */
+        .main-container { height: 100vh; display: flex; }
+        .sidebar-guide { width: 350px; background: #2c3e50; color: white; display: flex; flex-direction: column; }
+        .workspace { flex-grow: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* Chat Guide Styles */
+        .chat-box { flex-grow: 1; padding: 20px; overflow-y: auto; font-size: 0.9rem; }
+        .chat-bubble { background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid #3498db; animation: fadeIn 0.5s; }
+        .chat-bubble.user { border-left: 4px solid #2ecc71; background: rgba(46, 204, 113, 0.1); text-align: right; }
+        .chat-title { font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: #bdc3c7; margin-bottom: 5px; }
+        
+        /* Browser Simulation */
+        .browser-mockup { width: 100%; max-width: 800px; background: white; border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow: hidden; border: 1px solid #ced4da; transition: all 0.3s; }
+        .browser-bar { background: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; }
+        .url-input-group { flex-grow: 1; margin: 0 15px; position: relative; }
+        .url-display { width: 100%; border: 1px solid #ced4da; background: #fff; padding: 5px 15px; border-radius: 20px; color: #555; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; display: flex; align-items: center; }
+        .url-editable { border: none; background: #fff3cd; color: #d63384; font-weight: bold; width: 50px; text-align: center; margin: 0 2px; border-radius: 3px; outline: none; }
+        
+        /* Login Screen Mockup */
+        .login-screen { padding: 50px; text-align: center; }
+        
+        /* Profile Screen */
+        .profile-view { padding: 30px; display: none; }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .highlight-pulse { animation: pulse-red 2s infinite; border: 2px solid red !important; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div class="sidebar-guide shadow">
+        <div class="p-3 border-bottom border-secondary">
+            <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Security Mentor</h5>
+            <small class="text-white-50">Panduan Interaktif IDOR</small>
+        </div>
+        <div class="chat-box" id="chatContainer">
+            </div>
+        <div class="p-3 border-top border-secondary">
+            <a href="../index.html" class="btn btn-outline-light btn-sm w-100">
+                <i class="fas fa-arrow-left me-2"></i> Kembali ke Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="workspace bg-light">
+        
+        <div class="browser-mockup" id="browserFrame">
+            <div class="browser-bar">
+                <div class="d-flex gap-1 opacity-50">
+                    <i class="fas fa-circle text-danger small"></i>
+                    <i class="fas fa-circle text-warning small"></i>
+                    <i class="fas fa-circle text-success small"></i>
+                </div>
+                <div class="d-flex gap-3 ms-3 text-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    <i class="fas fa-arrow-right"></i>
+                    <i class="fas fa-redo"></i>
+                </div>
+                <div class="url-input-group">
+                    <div class="url-display" id="urlBar">
+                        <i class="fas fa-lock text-success me-2 small"></i>
+                        <span id="urlBase">https://portal-karyawan.local/login</span>
+                        <input type="text" id="urlParam" class="url-editable d-none" value="105" onchange="checkExploit()">
+                    </div>
+                </div>
+            </div>
+
+            <div id="screenLogin" class="login-screen">
+                <div style="max-width: 300px; margin: 0 auto;">
+                    <div class="mb-4">
+                        <i class="fas fa-building fa-3x text-primary"></i>
+                        <h4 class="mt-2">Portal Karyawan</h4>
+                        <p class="text-muted small">Silakan login untuk melihat slip gaji.</p>
+                    </div>
+                    <div class="form-floating mb-2">
+                        <input type="text" class="form-control" id="uInput" value="budi_staff">
+                        <label>Username</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" value="123456">
+                        <label>Password</label>
+                    </div>
+                    <button class="btn btn-primary w-100 py-2" onclick="doLogin()">Masuk (Login)</button>
+                </div>
+            </div>
+
+            <div id="screenProfile" class="profile-view">
+                <div class="row">
+                    <div class="col-md-4 text-center border-end">
+                        <img src="https://ui-avatars.com/api/?name=Budi+Staff&background=random" class="rounded-circle mb-3 shadow" id="avatarImg" width="100">
+                        <h5 class="fw-bold" id="pName">Budi Staff</h5>
+                        <span class="badge bg-secondary mb-3" id="pRole">Staff Biasa</span>
+                    </div>
+                    <div class="col-md-8 ps-4">
+                        <h6 class="text-muted text-uppercase small fw-bold">Informasi Karyawan</h6>
+                        <hr class="mt-1">
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Nomor ID:</div>
+                            <div class="col-8 text-primary fw-bold" id="pID">105</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Jabatan:</div>
+                            <div class="col-8" id="pJob">Admin Gudang</div>
+                        </div>
+                        <div class="alert alert-success mt-4">
+                            <strong><i class="fas fa-money-bill-wave me-2"></i>Info Gaji:</strong>
+                            <div class="fs-4 fw-bold" id="pSalary">Rp 4.500.000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screenWin" class="p-5 text-center d-none bg-success text-white">
+                <i class="fas fa-trophy fa-5x mb-3 text-warning"></i>
+                <h2>HACKED!</h2>
+                <p class="lead">Anda berhasil menemukan akun Administrator (ID 1).</p>
+                <div class="bg-white text-dark p-3 rounded mt-3 text-start small">
+                    <strong>Pelajaran:</strong><br>
+                    Website ini rentan IDOR karena server langsung mempercayai input ID dari URL tanpa mengecek apakah user yang login ("Budi") memiliki izin untuk melihat data "Admin".
+                </div>
+                <button onclick="saveExit()" class="btn btn-warning fw-bold mt-4 w-100">Simpan Sertifikat & Keluar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DATABASE MOCKUP ---
+    const db = {
+        105: { name: "Budi Staff", role: "Staff Biasa", job: "Admin Gudang", salary: "Rp 4.500.000", avatar: "Budi+Staff" },
+        104: { name: "Sari HRD", role: "HRD Manager", job: "Human Resource", salary: "Rp 8.000.000", avatar: "Sari+HRD" },
+        1: { name: "BIG BOSS", role: "Administrator", job: "CEO & Founder", salary: "Rp 150.000.000", avatar: "Big+Boss" } // Target
+    };
+
+    // --- STATE MANAGEMENT ---
+    let step = 0; 
+    // 0: Belum Login
+    // 1: Sudah Login (Observasi)
+    // 2: Sedang Mencoba Exploit
+
+    // --- CHAT GUIDE LOGIC ---
+    function addChat(msg, type = 'bot') {
+        const chatBox = document.getElementById('chatContainer');
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${type}`;
+        
+        const title = type === 'bot' ? 'Mentor Security' : 'Anda';
+        
+        bubble.innerHTML = `
+            <div class="chat-title">${title}</div>
+            ${msg}
+        `;
+        chatBox.appendChild(bubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // --- SCENARIO LOGIC ---
+    
+    // Tahap Awal
+    setTimeout(() => {
+        addChat("Halo! Selamat datang di simulasi IDOR.");
+        setTimeout(() => {
+            addChat("Tugas pertamamu sederhana: <strong>Login</strong> ke sistem menggunakan akun yang sudah tersedia di layar.");
+        }, 1000);
+    }, 500);
+
+    // Fungsi Login
+    function doLogin() {
+        // UI Updates
+        document.getElementById('screenLogin').style.display = 'none';
+        document.getElementById('screenProfile').style.display = 'block'; // Tampilkan profil Budi
+        
+        // Update URL Bar
+        document.getElementById('urlBase').innerText = "https://portal-karyawan.local/profile?user_id=";
+        document.getElementById('urlParam').classList.remove('d-none');
+        document.getElementById('urlParam').value = "105";
+
+        addChat("Saya sudah login.", "user");
+
+        // Delay respon bot
+        setTimeout(() => {
+            addChat("Bagus. Sekarang perhatikan URL di bagian atas browser."); 
+            addChat("Sistem menampilkan profilmu berdasarkan angka <code>105</code> di akhir URL.");
+            
+            // Highlight URL Bar agar user sadar
+            document.querySelector('.url-display').classList.add('highlight-pulse');
+            
+            setTimeout(() => {
+                addChat("Celah IDOR terjadi ketika kita bisa mengubah angka itu sembarangan. <strong>Coba ganti angka 105 menjadi 104</strong> lalu tekan Enter / klik sembarang.");
+                step = 2; // Masuk fase exploit
+            }, 3000);
+        }, 1000);
+    }
+
+    // Fungsi Cek Exploit (Saat user ganti angka)
+    function checkExploit() {
+        const inputId = document.getElementById('urlParam').value;
+        const display = document.getElementById('screenProfile');
+        
+        if (step < 2) return; // Belum saatnya
+
+        // Animasi Loading
+        display.style.opacity = '0.5';
+
+        setTimeout(() => {
+            display.style.opacity = '1';
+            
+            if (db[inputId]) {
+                const data = db[inputId];
+                
+                // Update UI Profil
+                document.getElementById('pName').innerText = data.name;
+                document.getElementById('pRole').innerText = data.role;
+                document.getElementById('pJob').innerText = data.job;
+                document.getElementById('pSalary').innerText = data.salary;
+                document.getElementById('pID').innerText = inputId;
+                document.getElementById('avatarImg').src = `https://ui-avatars.com/api/?name=${data.avatar}&background=random`;
+
+                // LOGIKA SKENARIO
+                if (inputId == 104) {
+                    addChat(`Saya mencoba ID ${inputId}.`, 'user');
+                    addChat("Wah! Kamu berhasil melihat data <strong>Sari HRD</strong>! Padahal kamu login sebagai Budi.");
+                    addChat("Ini membuktikan sistem tidak mengecek izin aksesmu. Sekarang tantangan terakhir...");
+                    addChat("Biasanya, akun Administrator atau CEO memiliki ID paling awal. <strong>Coba cari siapa pemilik ID 1.</strong>");
+                } 
+                else if (inputId == 1) {
+                    // MENANG
+                    document.getElementById('screenProfile').style.display = 'none';
+                    document.getElementById('screenWin').classList.remove('d-none');
+                    document.querySelector('.url-display').classList.remove('highlight-pulse');
+                    addChat("JACKPOT! Kamu menemukan akun Administrator.", "bot");
+                }
+                else {
+                    addChat(`Mencoba ID ${inputId}...`, 'user');
+                    addChat("Data ditemukan, tapi bukan target utama kita. Coba cari ID 104 atau 1.");
+                }
+
+            } else {
+                // Not Found
+                addChat(`Mencoba ID ${inputId}...`, 'user');
+                addChat("ID tersebut tidak ditemukan di database. Coba angka lain.");
+                // Reset tampilan ke Budi biar tidak blank
+                document.getElementById('urlParam').value = "105";
+                checkExploit(); 
+            }
+        }, 500);
+    }
+
+    function saveExit() {
+        localStorage.setItem('sim_a01', 'done'); // Update kunci jadi a01
+        window.location.href = '../index.html';
+    }
+</script>
+
+</body>
+</html>
