@@ -25,7 +25,10 @@
         .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
         .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #6d28d9; border: 1px solid #8b5cf6; color: #ede9fe; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
         .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #8b5cf6; animation: fadeIn 0.5s; }
+        
+        /* HINT BOX */
         .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
+        
         .code-snippet { font-family: 'Fira Code', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
 
         /* MAIN AREA */
@@ -37,7 +40,7 @@
         .url-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 15px; flex-grow: 1; margin-left: 15px; font-size: 0.85rem; color: #64748b; font-family: monospace; }
         .app-view { flex-grow: 1; background: #f8fafc; padding: 20px; overflow-y: auto; position: relative; }
 
-        /* TOOLS CONTAINER */
+        /* TOOLS */
         .tools-container { display: flex; gap: 20px; height: 45%; }
         
         /* EDITOR TOOL */
@@ -47,10 +50,11 @@
         
         .cookie-display { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 10px; font-size: 0.85rem; height: 60px; word-break: break-all; resize: none; width: 100%; }
         .decoded-display { background: #000; border: 1px solid #334155; color: #4ade80; padding: 10px; flex-grow: 1; font-size: 0.85rem; white-space: pre-wrap; font-family: 'Fira Code', monospace; resize: none; width: 100%; }
-        
+        .decoded-display:disabled { opacity: 0.5; cursor: not-allowed; }
+
         /* SOURCE VIEWER */
-        .source-tool { flex: 1; background: #1e1e1e; border: 1px solid #334155; border-radius: 8px; display: flex; flex-direction: column; opacity: 0.5; pointer-events: none; transition: all 0.3s; }
-        .source-tool.active { opacity: 1; pointer-events: auto; border-color: #8b5cf6; }
+        .source-tool { flex: 1; background: #1e1e1e; border: 1px solid #334155; border-radius: 8px; display: flex; flex-direction: column; opacity: 0.3; pointer-events: none; transition: all 0.3s; filter: blur(2px); }
+        .source-tool.active { opacity: 1; pointer-events: auto; border-color: #8b5cf6; filter: blur(0); }
         .source-code { padding: 15px; color: #d4d4d4; font-family: 'Fira Code', monospace; font-size: 0.8rem; overflow-y: auto; flex-grow: 1; white-space: pre; }
 
         /* UI Elements */
@@ -67,14 +71,16 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h5 class="mb-0 fw-bold" style="color: #a78bfa;"><i class="fas fa-fingerprint me-2"></i>Integrity Failures</h5>
-            <small class="text-secondary">Level: <span id="levelIndicator">1/5</span></small>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/6</span></small>
         </div>
         <div class="sidebar-content">
             <div id="missionDisplay"></div>
             
+            <div id="extraControls" class="mt-3"></div>
+
             <div class="mt-4 pt-3 border-top border-secondary">
                 <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
-                    <i class="far fa-lightbulb me-2"></i>Hint / Jawaban
+                    <i class="far fa-lightbulb me-2"></i>Buka Petunjuk (Hint)
                 </button>
                 <div id="hintBox" class="hint-box"></div>
             </div>
@@ -86,22 +92,8 @@
                     <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button>
                     <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button>
                 </div>
-                <div id="codeVuln" class="code-snippet">
-// ❌ RENTAN: Unserialize Input User
-$data = $_COOKIE['session'];
-$obj = unserialize(base64_decode($data));
-// Objek langsung dibuat tanpa validasi
-                </div>
-                <div id="codeSecure" class="code-snippet">
-// ✅ AMAN: Integrity Check (HMAC)
-$data = $_COOKIE['session'];
-$sig = $_COOKIE['sig'];
-
-if (!hash_equals(hmac($data), $sig)) {
-    die("Tampered!");
-}
-$obj = json_decode($data);
-                </div>
+                <div id="codeVuln" class="code-snippet">// ❌ RENTAN: Unserialize Tanpa Validasi<br>$data = $_COOKIE['session'];<br>$obj = unserialize(base64_decode($data));</div>
+                <div id="codeSecure" class="code-snippet">// ✅ AMAN: Cek Signature (HMAC)<br>if (!hash_equals(hmac($data), $sig)) die();<br>$obj = json_decode($data);</div>
                 <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai</button>
             </div>
         </div>
@@ -111,38 +103,36 @@ $obj = json_decode($data);
     </div>
 
     <div class="main-area">
-        
         <div class="browser">
             <div class="browser-bar">
                 <div class="d-flex gap-1 me-2"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span></div>
                 <div class="url-box">internal-dashboard.local</div>
                 <button onclick="renderApp()" class="btn btn-sm btn-light border ms-2"><i class="fas fa-redo"></i></button>
             </div>
-            <div class="app-view" id="appView">
-                </div>
+            <div class="app-view" id="appView"></div>
         </div>
 
         <div class="tools-container">
             <div class="editor-tool">
                 <div class="tool-header"><span>COOKIE TAMPERING TOOL</span><span class="badge bg-primary">ACTIVE</span></div>
                 <div class="tool-body">
-                    <label class="small text-secondary">1. Raw Cookie (Base64):</label>
+                    <div class="d-flex justify-content-between"><label class="small text-secondary">1. Raw Cookie (Base64):</label></div>
                     <textarea id="rawCookie" class="cookie-display" disabled></textarea>
                     
                     <div class="d-flex gap-2">
-                        <button onclick="decodeCookie()" class="btn btn-outline-info btn-sm w-50">Decode <i class="fas fa-arrow-down"></i></button>
-                        <button onclick="encodeCookie()" class="btn btn-outline-warning btn-sm w-50" id="btnEncode" disabled>Encode <i class="fas fa-arrow-up"></i></button>
+                        <button onclick="decodeCookie()" class="btn btn-outline-info btn-sm w-50" id="btnDecode">1. Decode <i class="fas fa-arrow-down"></i></button>
+                        <button onclick="encodeCookie()" class="btn btn-outline-warning btn-sm w-50" id="btnEncode" disabled>2. Encode <i class="fas fa-arrow-up"></i></button>
                     </div>
 
-                    <label class="small text-secondary">2. Decoded Object (PHP Serialized):</label>
-                    <textarea id="decodedCookie" class="decoded-display" placeholder="Click Decode first..." disabled onkeyup="checkEdit()"></textarea>
+                    <div class="d-flex justify-content-between"><label class="small text-secondary">2. Decoded Object (PHP):</label></div>
+                    <textarea id="decodedCookie" class="decoded-display" placeholder="Klik Decode dulu..." disabled oninput="onEditObject()"></textarea>
                     
-                    <button onclick="injectCookie()" class="btn btn-danger btn-sm w-100 fw-bold" id="btnInject" disabled>INJECT & REFRESH</button>
+                    <button onclick="injectCookie()" class="btn btn-secondary btn-sm w-100 fw-bold" id="btnInject" disabled>3. INJECT & REFRESH</button>
                 </div>
             </div>
 
             <div id="sourceTool" class="source-tool">
-                <div class="tool-header"><span>SOURCE CODE</span><span class="badge bg-secondary">LEAKED</span></div>
+                <div class="tool-header"><span>SOURCE CODE VIEWER</span><span class="badge bg-secondary">LEAKED</span></div>
                 <div class="source-code" id="sourceCodeContent">
 // User.php
 class User {
@@ -150,12 +140,12 @@ class User {
     public $role = "guest";
 }
 
-// Logger.php (VULNERABLE)
+// Logger.php (VULNERABLE CLASS)
 class FileLogger {
     public $logFile;
     public $content;
 
-    // Dipanggil saat objek dihancurkan
+    // Destructor: Dijalankan otomatis saat selesai
     public function __destruct() {
         // MENULIS FILE KE SERVER!
         file_put_contents($this->logFile, $this->content);
@@ -164,48 +154,55 @@ class FileLogger {
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // --- STATE ---
     let level = 1;
     let currentUser = { role: "guest", username: "budi_staff" };
-    
-    // Initial Serialized String (guest)
     let currentSerialized = `O:4:"User":2:{s:8:"username";s:10:"budi_staff";s:4:"role";s:5:"guest";}`;
+    let isModified = false;
+
+    // PAYLOADS
+    const ADMIN_PAYLOAD = `O:4:"User":2:{s:8:"username";s:10:"budi_staff";s:4:"role";s:5:"admin";}`;
+    const RCE_PAYLOAD = `O:10:"FileLogger":2:{s:7:"logFile";s:9:"shell.php";s:7:"content";s:19:"<?php system('id');";}`;
 
     const missions = [
         {},
         {
             badge: "Tahap 1: Reconnaissance",
             title: "Analisis Cookie",
-            desc: "Aplikasi menggunakan Cookie untuk menyimpan data sesi.<br><br>Lihat kotak <strong>Cookie Tool</strong> di kiri bawah. Teks acak itu adalah Base64.<br><br><strong>Tugas:</strong> Klik tombol <strong>Decode</strong> untuk menerjemahkannya.",
+            desc: "Aplikasi menggunakan Cookie untuk menyimpan data sesi user. String acak di kiri bawah adalah Base64.<br><br><strong>Tugas:</strong> Klik tombol <strong>1. Decode</strong> untuk menerjemahkannya.",
             hint: "Klik tombol Decode berwarna biru."
         },
         {
-            badge: "Tahap 2: Privilege Escalation",
-            title: "Manipulasi Objek",
-            desc: "Decoding berhasil! Anda melihat struktur data PHP: <code>s:4:\"role\";s:5:\"guest\"</code>.<br><br>Server mempercayai data ini tanpa verifikasi.<br><strong>Tugas:</strong><br>1. Ubah tulisan <code>guest</code> menjadi <code>admin</code> di kotak editor.<br>2. Klik <strong>Encode</strong>.<br>3. Klik <strong>INJECT</strong>.",
-            hint: "Ubah menjadi: <code>...s:4:\"role\";s:5:\"admin\";...</code><br>Pastikan Anda mengklik Encode lalu Inject."
+            badge: "Tahap 2: Decoding",
+            title: "Analisis Objek",
+            desc: "Decoding Berhasil! Anda melihat struktur: <code>s:4:\"role\";s:5:\"guest\"</code>.<br><br>Server membaca data ini untuk menentukan hak akses. Kita akan memodifikasinya.",
+            hint: "Lanjut ke tahap 3."
         },
         {
-            badge: "Tahap 3: Source Code Review",
-            title: "Mencari Celah RCE",
-            desc: "Selamat, Anda Admin! Panel Source Code di kanan sekarang terbuka.<br><br>Baca kodenya. Ada kelas <code>FileLogger</code> dengan fungsi <code>__destruct</code> yang berbahaya karena bisa menulis file.<br><br>Kita bisa membuat objek palsu dari kelas ini.",
-            hint: "Kita akan menyuntikkan objek FileLogger untuk membuat file shell."
+            badge: "Tahap 3: Privilege Escalation",
+            title: "Mengubah Peran (Admin)",
+            desc: "<strong>Tugas:</strong><br>1. Ganti tulisan <code>guest</code> menjadi <code>admin</code> di kotak 'Decoded Object'.<br>2. Klik <strong>2. Encode</strong> untuk membungkus ulang.<br>3. Klik <strong>3. INJECT</strong> untuk mengirim ke server.",
+            hint: "Gunakan tombol ini agar tidak salah ketik:<br><button class='btn btn-xs btn-warning mt-2' onclick='autoFillAdmin()'>AUTO-FILL ADMIN</button>"
         },
         {
-            badge: "Tahap 4: Object Injection",
-            title: "Remote Code Execution",
-            desc: "Mari kita buat *backdoor*.<br><br>Hapus semua teks di kotak editor, lalu masukkan Payload ini:<br><code>O:10:\"FileLogger\":2:{s:7:\"logFile\";s:9:\"shell.php\";s:7:\"content\";s:18:\"&lt;?php system('id');\";}</code><br><br>Lalu Encode & Inject.",
-            hint: "Copy payload di atas, Paste di editor, Encode, Inject."
+            badge: "Tahap 4: Source Code Review",
+            title: "Mencari Gadget Chain",
+            desc: "Selamat, Anda Admin! Panel Source Code di kanan sekarang terbuka.<br><br>Baca kodenya. Ada kelas <code>FileLogger</code>. Fungsi <code>__destruct()</code> berbahaya karena bisa menulis file ke server.<br><br>Jika sudah paham, klik tombol Lanjut.",
+            hint: "Klik tombol 'Lanjut ke Eksploitasi' di bawah ini."
+        },
+        {
+            badge: "Tahap 5: Object Injection",
+            title: "Membuat Payload Jahat",
+            desc: "Kita akan mengganti objek <strong>User</strong> dengan objek <strong>FileLogger</strong> palsu untuk membuat backdoor.<br><br><strong>Tugas:</strong><br>1. Hapus SEMUA teks di kotak 'Decoded Object'.<br>2. Masukkan payload khusus.<br>3. Encode & Inject.",
+            hint: "Gunakan tombol ini:<br><button class='btn btn-xs btn-danger mt-2' onclick='autoFillPayload()'>AUTO-FILL PAYLOAD RCE</button>"
         },
         {
             badge: "Mission Complete",
             title: "System Compromised",
-            desc: "<strong>SUKSES!</strong><br>Server menerima objek berbahaya tersebut dan menjalankannya. File <code>shell.php</code> berhasil dibuat di server.",
+            desc: "<strong>SUKSES!</strong><br>Server menerima objek FileLogger palsu, dan saat skrip selesai berjalan, fungsi destructor tereksekusi dan menciptakan file <code>shell.php</code> di server.",
             hint: "Selesai."
         }
     ];
@@ -218,49 +215,53 @@ class FileLogger {
         document.getElementById('hintBox').style.display = 'none';
         document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
         
-        // UNLOCK LOGIC (FIXED)
+        // Reset Extra Controls
+        document.getElementById('extraControls').innerHTML = "";
+
+        // AUTO ADVANCE LEVEL 2
+        if(level === 2) {
+            setTimeout(() => { level = 3; renderMission(); }, 3000);
+        }
+
+        // LEVEL 4 MANUAL BUTTON FIX
+        if(level === 4) {
+            document.getElementById('extraControls').innerHTML = `<button class="btn btn-primary w-100" onclick="level=5; renderMission()">Lanjut ke Eksploitasi >></button>`;
+        }
+
+        // UNLOCK LOGIC
         if(level >= 3) {
+            document.getElementById('decodedCookie').disabled = false;
+        }
+        if(level >= 4) {
             document.getElementById('sourceTool').classList.add('active');
         }
-        
         renderApp();
     }
 
     function toggleHint() { const box = document.getElementById('hintBox'); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
 
+    // --- HELPERS ---
+    function autoFillAdmin() {
+        document.getElementById('decodedCookie').value = ADMIN_PAYLOAD;
+        onEditObject();
+        alert("Payload Admin diisi. Klik 'Encode' lalu 'Inject'.");
+    }
+
+    function autoFillPayload() {
+        document.getElementById('decodedCookie').value = RCE_PAYLOAD;
+        onEditObject();
+        alert("Payload RCE diisi. Klik 'Encode' lalu 'Inject'.");
+    }
+
     // --- APP RENDERER ---
     function renderApp() {
         const view = document.getElementById('appView');
-        // Update Raw Cookie display from State
-        document.getElementById('rawCookie').value = btoa(currentSerialized);
+        if(!isModified) document.getElementById('rawCookie').value = btoa(currentSerialized);
 
         if(currentUser.role === 'guest') {
-            view.innerHTML = `
-                <div class="text-center mt-5">
-                    <h3>Internal Dashboard</h3>
-                    <div class="user-panel">
-                        <i class="fas fa-user-circle fa-3x text-secondary mb-3"></i><br>
-                        <strong>${currentUser.username}</strong><br>
-                        <span class="role-badge">Guest</span>
-                        <div class="alert alert-secondary mt-3 text-start small">
-                            <i class="fas fa-lock me-1"></i> Admin panel is restricted.
-                        </div>
-                    </div>
-                </div>`;
+            view.innerHTML = `<div class="text-center mt-5"><div class="user-panel"><i class="fas fa-user-circle fa-3x text-secondary mb-3"></i><br><strong>${currentUser.username}</strong><br><span class="role-badge">Guest</span><div class="alert alert-secondary mt-3 text-start small">Admin panel is restricted.</div></div></div>`;
         } else if (currentUser.role === 'admin') {
-            view.innerHTML = `
-                <div class="text-center mt-5">
-                    <h3 class="text-danger">ADMIN DASHBOARD</h3>
-                    <div class="user-panel border-danger">
-                        <i class="fas fa-user-secret fa-3x text-danger mb-3"></i><br>
-                        <strong>${currentUser.username}</strong><br>
-                        <span class="role-badge admin">Administrator</span>
-                        <div class="alert alert-success mt-3 text-start small">
-                            <i class="fas fa-unlock me-1"></i> Access Granted.<br>
-                            Debug Source Code: <strong>ENABLED</strong>
-                        </div>
-                    </div>
-                </div>`;
+            view.innerHTML = `<div class="text-center mt-5"><div class="user-panel border-danger"><i class="fas fa-user-secret fa-3x text-danger mb-3"></i><br><strong>${currentUser.username}</strong><br><span class="role-badge admin">Administrator</span><div class="alert alert-success mt-3 text-start small">Access Granted.<br>Source Code: <strong>VISIBLE</strong></div></div></div>`;
         }
     }
 
@@ -269,61 +270,51 @@ class FileLogger {
         const raw = document.getElementById('rawCookie').value;
         try {
             const decoded = atob(raw);
-            const decodedArea = document.getElementById('decodedCookie');
-            
-            decodedArea.value = decoded;
-            decodedArea.disabled = false; // UNLOCK EDITING
-            
-            // Auto advance level 1 -> 2
-            if(level === 1) { 
-                level = 2; 
-                renderMission(); 
-            }
+            document.getElementById('decodedCookie').value = decoded;
+            document.getElementById('decodedCookie').disabled = false;
+            if(level === 1) { level = 2; renderMission(); }
         } catch(e) { alert("Invalid Base64"); }
     }
 
-    function checkEdit() {
-        // Enable Encode button only if text is changed
+    function onEditObject() {
         document.getElementById('btnEncode').disabled = false;
+        document.getElementById('btnInject').disabled = true; 
+        document.getElementById('btnInject').className = "btn btn-secondary btn-sm w-100 fw-bold";
+        isModified = true;
     }
 
     function encodeCookie() {
         const text = document.getElementById('decodedCookie').value;
-        // Update Raw Display
         document.getElementById('rawCookie').value = btoa(text);
-        document.getElementById('btnInject').disabled = false;
+        
+        const btnInject = document.getElementById('btnInject');
+        btnInject.disabled = false;
+        btnInject.className = "btn btn-danger btn-sm w-100 fw-bold";
     }
 
     function injectCookie() {
         const payload = document.getElementById('decodedCookie').value;
-        currentSerialized = payload; // Update state
+        currentSerialized = payload; 
         
-        // SIMULASI BACKEND LOGIC
-        
-        // 1. Cek Privilege Escalation (Guest -> Admin)
+        // 1. Cek Admin
         if(payload.includes('s:5:"admin"')) {
             currentUser.role = 'admin';
-            if(level === 2) { 
-                alert("Inject Success! Welcome Admin.");
-                level = 3; renderMission(); 
-            }
+            if(level <= 3) { alert("Success! You are now Admin."); level = 4; renderMission(); }
         } else {
-            currentUser.role = 'guest'; // Revert if wrong
+            currentUser.role = 'guest';
         }
 
-        // 2. Cek RCE (FileLogger Gadget)
-        // Check keywords: FileLogger + shell.php
+        // 2. Cek RCE
         if(payload.includes('FileLogger') && payload.includes('shell.php')) {
-            if(level >= 3) {
+            if(level >= 5) { // Hanya sukses jika sudah di level 5
                 alert("RCE EXECUTED! File 'shell.php' created.");
-                level = 5; // Finish
-                renderMission();
+                level = 6; renderMission();
                 document.getElementById('remediationSection').style.display = 'block';
                 document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
             }
         }
-
-        renderApp(); // Refresh View
+        renderApp();
+        isModified = false;
     }
 
     function showCode(t) {
@@ -334,7 +325,6 @@ class FileLogger {
     
     function finishLab() { localStorage.setItem('sim_a08', 'done'); window.location.href = '../index.html'; }
 
-    // Init
     renderMission();
     renderApp();
 </script>
