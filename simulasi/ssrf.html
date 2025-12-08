@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A10: SSRF</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 380px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #0369a1; border: 1px solid #0ea5e9; color: #e0f2fe; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #0ea5e9; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
+        .code-snippet { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
+
+        /* MAIN AREA */
+        .main-area { flex-grow: 1; padding: 30px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; }
+
+        /* VISUAL MAP (TOP) */
+        .network-map { height: 150px; background: #020617; border: 1px solid #334155; border-radius: 8px; display: flex; align-items: center; justify-content: space-evenly; position: relative; overflow: hidden; }
+        .map-node { text-align: center; z-index: 2; width: 100px; }
+        .node-icon { width: 50px; height: 50px; background: #1e293b; border: 2px solid #64748b; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 1.5rem; color: #cbd5e1; position: relative; transition: 0.3s; }
+        .node-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .node-ip { font-size: 0.65rem; color: #475569; font-family: monospace; background: #0f172a; padding: 2px 6px; border-radius: 4px; margin-top: 2px; display: inline-block; }
+        
+        .map-line { position: absolute; height: 2px; background: #334155; top: 40%; z-index: 1; width: 80%; }
+        .request-dot { width: 10px; height: 10px; background: #0ea5e9; border-radius: 50%; position: absolute; top: 39%; left: 10%; display: none; box-shadow: 0 0 10px #0ea5e9; z-index: 3; }
+        
+        @keyframes shoot { 0% { left: 15%; } 50% { left: 50%; } 100% { left: 85%; } }
+        @keyframes shootBlock { 0% { left: 15%; } 100% { left: 50%; opacity: 0; } }
+
+        /* BROWSER (TOOL) */
+        .browser { background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; flex-grow: 1; border: 1px solid #475569; }
+        .browser-bar { background: #f1f5f9; padding: 8px 15px; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; }
+        .app-view { padding: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; height: 100%; }
+        
+        .input-group-lg { max-width: 600px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .result-box { margin-top: 30px; width: 100%; max-width: 600px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; min-height: 150px; position: relative; }
+        .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-network-wired me-2"></i>SSRF Lab</h5>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/5</span></small>
+        </div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            <div id="actionArea"></div>
+
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Hint / Bantuan
+                </button>
+                <div id="hintBox" class="hint-box"></div>
+            </div>
+
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold">Analisis Kode</h6>
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button>
+                    <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button>
+                </div>
+                <div id="codeVuln" class="code-snippet">
+// ❌ RENTAN: Mengambil URL apapun
+$url = $_GET['url'];
+$data = file_get_contents($url);
+echo $data;
+                </div>
+                <div id="codeSecure" class="code-snippet">
+// ✅ AMAN: Whitelist Domain
+$allowed = ['google.com', 'bing.com'];
+$host = parse_url($url, PHP_URL_HOST);
+
+if (!in_array($host, $allowed)) {
+    die("Domain not allowed!");
+}
+                </div>
+                <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary">
+            <a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="main-area">
+        
+        <div class="network-map">
+            <div class="map-line"></div>
+            <div id="reqDot" class="request-dot"></div>
+
+            <div class="map-node">
+                <div class="node-icon text-white"><i class="fas fa-user-secret"></i></div>
+                <div class="node-label">Attacker</div>
+                <div class="node-ip">External</div>
+            </div>
+            
+            <div class="map-node">
+                <div class="node-icon text-primary border-primary" id="nodeWeb"><i class="fas fa-server"></i></div>
+                <div class="node-label">Web Server</div>
+                <div class="node-ip">10.0.0.5</div>
+            </div>
+
+            <div class="map-node">
+                <div class="node-icon border-danger text-danger" id="nodeInternal"><i class="fas fa-database"></i></div>
+                <div class="node-label">Internal DB</div>
+                <div class="node-ip">127.0.0.1</div>
+            </div>
+        </div>
+
+        <div class="browser">
+            <div class="browser-bar">
+                <div class="d-flex gap-1 me-2"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span></div>
+                <div class="text-secondary small">tools.checker.local/uptime</div>
+            </div>
+            <div class="app-view">
+                <div class="mb-4">
+                    <i class="fas fa-globe-americas fa-3x text-info mb-3"></i>
+                    <h3>Website Uptime Checker</h3>
+                    <p class="text-muted small">Masukkan URL untuk mengecek apakah website tersebut online.</p>
+                </div>
+
+                <div class="input-group input-group-lg mb-3">
+                    <span class="input-group-text bg-white"><i class="fas fa-link text-muted"></i></span>
+                    <input type="text" id="urlInput" class="form-control" placeholder="http://google.com">
+                    <button class="btn btn-primary px-4 fw-bold" onclick="checkUrl()">Check Status</button>
+                </div>
+
+                <div class="result-box">
+                    <span class="text-secondary border-bottom d-block pb-2 mb-2">SERVER RESPONSE PREVIEW:</span>
+                    <div id="responseContent" class="text-dark">Waiting for input...</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- STATE ---
+    let level = 1;
+
+    const missions = [
+        {},
+        {
+            badge: "Tahap 1: Reconnaissance",
+            title: "Uji Fungsi Normal",
+            desc: "Aplikasi ini berfungsi untuk mengecek status website lain.<br><br>Cobalah masukkan URL publik (seperti <code>google.com</code>) untuk melihat bagaimana server merespons.",
+            hint: "Ketik <code>http://google.com</code> lalu klik Check."
+        },
+        {
+            badge: "Tahap 2: Discovery",
+            title: "Scanning Localhost",
+            desc: "Server ini memiliki akses internet. Pertanyaannya: Apakah dia bisa mengakses dirinya sendiri (Localhost)?<br><br>Coba akses <code>http://127.0.0.1</code> atau <code>http://localhost</code>.",
+            hint: "Masukkan <code>http://127.0.0.1</code>."
+        },
+        {
+            badge: "Tahap 3: Bypass Blacklist",
+            title: "Melewati Filter",
+            desc: "Akses ke <code>127.0.0.1</code> diblokir! Developer sepertinya memblokir string tersebut.<br><br>Kita bisa menggunakan representasi lain dari Localhost. Coba gunakan:<br>1. Decimal IP: <code>http://2130706433</code><br>2. Short IP: <code>http://0</code>",
+            hint: "Coba masukkan <code>http://0</code> (angka nol)."
+        },
+        {
+            badge: "Tahap 4: Port Scanning",
+            title: "Mencari Admin Panel",
+            desc: "Bypass Berhasil! Kita bisa melihat halaman default localhost.<br><br>Biasanya, layanan internal (Admin/Database) berjalan di Port yang tidak standar (bukan 80).<br>Coba scan port umum: <strong>8080</strong> atau <strong>8000</strong>.",
+            hint: "Tambahkan port di belakang URL. Contoh: <code>http://0:8080</code>"
+        },
+        {
+            badge: "Tahap 5: Data Extraction",
+            title: "Mencuri Data Rahasia",
+            desc: "<strong>PORT 8080 TERBUKA!</strong><br>Ini adalah Dashboard Admin Internal. Server meminta endpoint khusus untuk menampilkan data sensitif.<br><br>Coba akses: <code>/admin/secrets</code>",
+            hint: "URL Lengkap: <code>http://0:8080/admin/secrets</code>"
+        },
+        { badge: "Mission Complete", title: "SSRF Master", desc: "Anda berhasil mengakses data internal menggunakan server sebagai proxy.", hint: "Selesai." }
+    ];
+
+    function renderMission() {
+        if(level > 5) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/5";
+        document.getElementById('missionDisplay').innerHTML = `<span class="level-badge">${m.badge}</span><div class="mission-card"><h5 class="fw-bold mb-3 text-white">${m.title}</h5><p class="small text-light opacity-75">${m.desc}</p></div>`;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+    }
+
+    function toggleHint() { const box = document.getElementById('hintBox'); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
+
+    // --- ANIMATION ---
+    function animateReq(type) {
+        const dot = document.getElementById('reqDot');
+        const nodeWeb = document.getElementById('nodeWeb');
+        const nodeInt = document.getElementById('nodeInternal');
+        
+        // Reset
+        dot.style.display = 'block';
+        dot.style.animation = 'none';
+        dot.offsetHeight; /* trigger reflow */
+        
+        if (type === 'block') {
+            dot.style.animation = 'shootBlock 1s forwards';
+            setTimeout(() => { nodeWeb.style.borderColor = '#f43f5e'; }, 500); // Red flash
+            setTimeout(() => { nodeWeb.style.borderColor = '#64748b'; dot.style.display = 'none'; }, 1000);
+        } else {
+            dot.style.animation = 'shoot 1s forwards';
+            setTimeout(() => { nodeWeb.style.borderColor = '#0ea5e9'; }, 500); // Blue flash
+            setTimeout(() => { nodeInt.style.borderColor = '#0ea5e9'; }, 1000);
+            setTimeout(() => { 
+                nodeWeb.style.borderColor = '#64748b'; 
+                nodeInt.style.borderColor = '#f43f5e'; 
+                dot.style.display = 'none'; 
+            }, 1500);
+        }
+    }
+
+    // --- LOGIC ---
+    function checkUrl() {
+        const url = document.getElementById('urlInput').value.toLowerCase().trim();
+        const res = document.getElementById('responseContent');
+        
+        res.innerHTML = `<span class="text-secondary"><i class="fas fa-spinner fa-spin me-2"></i>Fetching URL...</span>`;
+
+        setTimeout(() => {
+            // 1. External Check
+            if (url.includes('google.com') || url.includes('example.com')) {
+                animateReq('normal'); // Animation
+                res.innerHTML = `<span class="text-success fw-bold">200 OK</span><br><br>&lt;html&gt;<br>Title: Google<br>...External Content...`;
+                if(level === 1) { setTimeout(() => { level=2; renderMission(); alert("Koneksi Eksternal Berhasil."); }, 1000); }
+            }
+            
+            // 2. Localhost Blocked
+            else if (url.includes('127.0.0.1') || url.includes('localhost')) {
+                animateReq('block');
+                res.innerHTML = `<span class="text-danger fw-bold">403 FORBIDDEN</span><br><br>Error: Access to local resources is blocked by WAF.`;
+                if(level === 2) { setTimeout(() => { level=3; renderMission(); alert("Akses Diblokir! Cari cara Bypass."); }, 1000); }
+            }
+
+            // 3. Bypass (0 or Decimal)
+            else if (url === 'http://0' || url === 'http://0.0.0.0' || url.includes('2130706433')) {
+                animateReq('normal'); // Tembus ke internal
+                res.innerHTML = `<span class="text-success fw-bold">200 OK</span><br><br>Apache2 Ubuntu Default Page.<br>It works!`;
+                if(level === 3) { setTimeout(() => { level=4; renderMission(); alert("Bypass Berhasil! Kita masuk ke root server."); }, 1000); }
+            }
+
+            // 4. Port Scanning (8080)
+            else if (url === 'http://0:8080') {
+                animateReq('normal');
+                res.innerHTML = `<span class="text-warning fw-bold">200 OK</span><br><br><strong>INTERNAL ADMIN PANEL v1.0</strong><br>Login Required.<br>Endpoints: /login, /dashboard, /secrets`;
+                if(level === 4) { setTimeout(() => { level=5; renderMission(); alert("Panel Admin Ditemukan!"); }, 1000); }
+            }
+
+            // 5. Exploit
+            else if (url.includes(':8080/admin/secrets')) {
+                animateReq('normal');
+                res.innerHTML = `<span class="text-success fw-bold">200 OK</span><br><br><strong>CONFIDENTIAL DATA:</strong><br>FLAG: {SSRF_MASTER_BYPASS}<br>DB_PASS: s3cr3t_p4ss`;
+                if(level === 5) { 
+                    level=6; renderMission(); 
+                    document.getElementById('remediationSection').style.display = 'block';
+                    document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+                }
+            }
+
+            else {
+                res.innerHTML = `<span class="text-danger">ERROR: Failed to connect to host.</span>`;
+            }
+        }, 800);
+    }
+
+    function showCode(t) {
+        document.getElementById('codeVuln').style.display = 'none';
+        document.getElementById('codeSecure').style.display = 'none';
+        document.getElementById(t==='vuln'?'codeVuln':'codeSecure').style.display = 'block';
+    }
+    
+    function finishLab() { localStorage.setItem('sim_a10', 'done'); window.location.href = '../index.html'; }
+
+    renderMission();
+</script>
+</body>
+</html>
