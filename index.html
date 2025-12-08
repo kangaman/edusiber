@@ -3,241 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saeful Bahri Edu - Security Awareness Labs</title>
+    <title>Cybersecurity Learning Hub</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Cinzel:wght@400;700&family=Pinyon+Script&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; color: #333; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #1f2937; }
         
-        /* Navbar Styling */
-        .navbar { box-shadow: 0 2px 10px rgba(0,0,0,0.1); background-color: #fff !important; }
-        .nav-link { font-weight: 500; color: #555 !important; }
-        .nav-link:hover { color: #0d6efd !important; }
-        .nav-link.active { color: #0d6efd !important; font-weight: 700; }
-
+        /* Navbar */
+        .navbar { background: white; box-shadow: 0 2px 15px rgba(0,0,0,0.03); padding: 15px 0; }
+        .navbar-brand { font-weight: 800; color: #0f172a !important; font-size: 1.35rem; }
+        
         /* Hero Section */
-        .hero-section {
-            background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
-            color: white;
-            padding: 80px 0 60px;
-            border-radius: 0 0 50px 50px;
-            margin-bottom: 3rem;
-        }
-        .hero-btn { padding: 12px 30px; border-radius: 50px; font-weight: 600; transition: transform 0.2s; }
-        .hero-btn:hover { transform: translateY(-3px); }
-
-        /* Module Cards */
-        .card-module {
-            border: none; border-radius: 15px; transition: all 0.3s ease;
-            background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.05); height: 100%;
+        .hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: white; padding: 100px 0 140px;
             position: relative; overflow: hidden;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+            margin-bottom: 20px;
         }
-        .card-module:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
-        .card-module::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
-            background: #e0e0e0; /* Default Line Color */
+        .hero-title { font-weight: 800; letter-spacing: -1px; margin-bottom: 20px; }
+        .hero-desc { font-size: 1.1rem; opacity: 0.8; max-width: 600px; margin: 0 auto 30px; }
+        .btn-cta { padding: 12px 35px; font-weight: 700; border-radius: 50px; transition: all 0.3s; }
+        .btn-cta:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+
+        /* Menu Cards */
+        .menu-grid { margin-top: -80px; position: relative; z-index: 10; padding-bottom: 60px; }
+        .menu-card {
+            border: none; border-radius: 16px; overflow: hidden;
+            background: white; height: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s ease; position: relative;
+            display: flex; flex-direction: column;
+            border-top: 4px solid transparent;
         }
+        .menu-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
         
-        /* Icon Box */
-        .icon-box {
-            width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
-            border-radius: 10px; font-size: 1.2rem; margin-bottom: 1rem;
-            background-color: #f1f3f5; color: #495057;
+        /* Card Colors & Icons */
+        .card-teori { border-top-color: #3b82f6; } /* Biru */
+        .card-teori .icon-circle { background: #eff6ff; color: #3b82f6; }
+        
+        .card-simulasi { border-top-color: #ef4444; } /* Merah */
+        .card-simulasi .icon-circle { background: #fef2f2; color: #ef4444; }
+        
+        .card-roadmap { border-top-color: #10b981; } /* Hijau */
+        .card-roadmap .icon-circle { background: #ecfdf5; color: #10b981; }
+        
+        .card-path { border-top-color: #f59e0b; } /* Kuning */
+        .card-path .icon-circle { background: #fffbeb; color: #f59e0b; }
+
+        .icon-circle {
+            width: 70px; height: 70px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; margin-bottom: 20px;
         }
 
-        /* Status Badge */
-        .status-badge { position: absolute; top: 15px; right: 15px; font-size: 0.7rem; border-radius: 20px; }
-        .btn-module { border-radius: 50px; }
+        .card-body { padding: 30px; text-align: left; display: flex; flex-direction: column; height: 100%; }
+        .card-title { font-weight: 700; font-size: 1.25rem; margin-bottom: 10px; }
+        .card-text { color: #64748b; font-size: 0.95rem; line-height: 1.6; flex-grow: 1; }
+        .arrow-link { font-weight: 700; text-decoration: none; margin-top: 20px; display: inline-flex; align-items: center; }
+        .arrow-link i { transition: 0.2s; margin-left: 5px; }
+        .menu-card:hover .arrow-link i { margin-left: 10px; }
 
-        /* OWASP Specific Colors (Top Border & Icon) */
-        .card-a01::before { background: #d32f2f; } .icon-a01 { color: #d32f2f; background: #ffebee; }
-        .card-a02::before { background: #c2185b; } .icon-a02 { color: #c2185b; background: #fce4ec; }
-        .card-a03::before { background: #7b1fa2; } .icon-a03 { color: #7b1fa2; background: #f3e5f5; }
-        .card-a04::before { background: #512da8; } .icon-a04 { color: #512da8; background: #ede7f6; }
-        .card-a05::before { background: #303f9f; } .icon-a05 { color: #303f9f; background: #e8eaf6; }
-        .card-a06::before { background: #1976d2; } .icon-a06 { color: #1976d2; background: #e3f2fd; }
-        .card-a07::before { background: #0288d1; } .icon-a07 { color: #0288d1; background: #e1f5fe; }
-        .card-a08::before { background: #0097a7; } .icon-a08 { color: #0097a7; background: #e0f7fa; }
-        .card-a09::before { background: #00796b; } .icon-a09 { color: #00796b; background: #e0f2f1; }
-        .card-a10::before { background: #388e3c; } .icon-a10 { color: #388e3c; background: #e8f5e9; }
-        .card-a11::before { background: #d946ef; } .icon-a11 { color: #d946ef; background: #fdf4ff; }
-
-        /* Certificate Styles */
-        .cert-locked { filter: grayscale(1); opacity: 0.7; pointer-events: none; }
-        .cert-unlocked { border: 2px solid #ffc107 !important; background: #fffbf0; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); } }
-
+        /* Stats Section */
+        .stats-section { padding: 60px 0; background: white; border-top: 1px solid #eee; }
+        .stat-item h3 { font-weight: 800; color: #0f172a; font-size: 2.5rem; }
+        .stat-item p { color: #64748b; font-weight: 500; }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+    <nav class="navbar sticky-top">
         <div class="container">
-            <a class="navbar-brand fw-bold text-primary" href="#">
-                <i class="fas fa-shield-alt me-2"></i>Security Edu
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt text-primary me-2"></i>Cybersecurity Learning Hub
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="#">Beranda</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#curriculum">Kurikulum</a></li>
-                </ul>
+            <div class="d-none d-md-block">
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">Versi 2.0</span>
             </div>
         </div>
     </nav>
 
-    <section class="hero-section text-center mt-5">
+    <section class="hero text-center">
         <div class="container">
-            <span class="badge bg-light text-primary mb-3 px-3 py-2 rounded-pill">Kurikulum Standar Industri</span>
-            <h1 class="fw-bold display-5 mb-3">OWASP Top 10 Simulation Labs</h1>
-            <p class="lead mb-4 opacity-75">
-                Panduan lengkap memahami risiko keamanan aplikasi web paling kritis melalui simulasi praktis.
+            <h1 class="display-4 hero-title">Bangun Karir Keamanan Siber<br>Dari Dasar Hingga Mahir</h1>
+            <p class="hero-desc text-white-50">
+                Platform edukasi terintegrasi yang menggabungkan teori fundamental, peta jalan karir, dan laboratorium simulasi serangan siber interaktif.
             </p>
-            
-            <div class="bg-white bg-opacity-10 p-3 rounded-3 mb-4 d-inline-block w-100" style="max-width: 600px; backdrop-filter: blur(5px);">
-                <div class="d-flex justify-content-between text-white mb-1 small">
-                    <span>Total Progres Kelulusan</span>
-                    <span><strong id="progressText">0</strong>%</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                    <div class="progress-bar bg-warning" id="mainProgressBar" role="progressbar" style="width: 0%"></div>
-                </div>
-                <div class="text-end mt-2">
-                     <button onclick="resetProgress()" class="btn btn-link btn-sm text-white text-decoration-none opacity-75" style="font-size: 0.8rem;">
-                        <i class="fas fa-trash-alt me-1"></i> Reset Data
-                    </button>
-                </div>
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="#menu" class="btn btn-light btn-cta text-primary">Mulai Belajar</a>
+                <a href="simulasi/dashboard.html" class="btn btn-outline-light btn-cta">Masuk Lab <i class="fas fa-arrow-right ms-2"></i></a>
             </div>
         </div>
     </section>
 
-    <section id="curriculum" class="container pb-5">
+    <section id="menu" class="menu-grid container">
         <div class="row g-4">
             
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a01 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a01">Belum Selesai</span>
-                    <div class="icon-box icon-a01"><i class="fas fa-id-card-alt"></i></div>
-                    <h5 class="fw-bold">A01: Broken Access Control</h5>
-                    <p class="text-muted small mb-3">Mengakses data atau fitur yang bukan hak kita (contoh: IDOR).</p>
-                    <div class="mt-auto"><a href="simulasi/idor.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
+            <div class="col-md-6 col-lg-3">
+                <div class="menu-card card-teori h-100">
+                    <div class="card-body">
+                        <div class="icon-circle"><i class="fas fa-book-open"></i></div>
+                        <h4 class="card-title">Teori Dasar</h4>
+                        <p class="card-text">Pelajari fondasi keamanan siber: CIA Triad, Jaringan, Kriptografi, hingga Hukum Siber & Etika.</p>
+                        <a href="teori/index.html" class="arrow-link text-primary stretched-link">
+                            Baca Materi <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a02 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a02">Belum Selesai</span>
-                    <div class="icon-box icon-a02"><i class="fas fa-key"></i></div>
-                    <h5 class="fw-bold">A02: Cryptographic Failures</h5>
-                    <p class="text-muted small mb-3">Kegagalan enkripsi data sensitif (Base64 vs Enkripsi).</p>
-                    <div class="mt-auto"><a href="simulasi/crypto.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
+            <div class="col-md-6 col-lg-3">
+                <div class="menu-card card-simulasi h-100">
+                    <div class="card-body">
+                        <div class="icon-circle"><i class="fas fa-laptop-code"></i></div>
+                        <h4 class="card-title">Simulasi Praktik</h4>
+                        <p class="card-text">Laboratorium virtual interaktif untuk mempraktikkan serangan OWASP Top 10 (SQLi, XSS, IDOR) secara aman.</p>
+                        <a href="simulasi/dashboard.html" class="arrow-link text-danger stretched-link">
+                            Masuk Lab <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a03 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a03">Belum Selesai</span>
-                    <div class="icon-box icon-a03"><i class="fas fa-database"></i></div>
-                    <h5 class="fw-bold">A03: SQL Injection</h5>
-                    <p class="text-muted small mb-3">Teknik Bypass Login dan Database Dumping.</p>
-                    <div class="mt-auto"><a href="simulasi/injection.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
+            <div class="col-md-6 col-lg-3">
+                <div class="menu-card card-roadmap h-100">
+                    <div class="card-body">
+                        <div class="icon-circle"><i class="fas fa-map-signs"></i></div>
+                        <h4 class="card-title">Roadmap Karir</h4>
+                        <p class="card-text">Peta jalan profesi: Pentester, Security Analyst, hingga CISO. Apa saja skill dan sertifikasi yang dibutuhkan?</p>
+                        <a href="roadmap/index.html" class="arrow-link text-success stretched-link">
+                            Lihat Peta <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a04 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a04">Belum Selesai</span>
-                    <div class="icon-box icon-a04"><i class="fas fa-drafting-compass"></i></div>
-                    <h5 class="fw-bold">A04: Insecure Design</h5>
-                    <p class="text-muted small mb-3">Cacat logika bisnis dan manipulasi harga.</p>
-                    <div class="mt-auto"><a href="simulasi/design.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a05 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a05">Belum Selesai</span>
-                    <div class="icon-box icon-a05"><i class="fas fa-cogs"></i></div>
-                    <h5 class="fw-bold">A05: Security Misconfiguration</h5>
-                    <p class="text-muted small mb-3">File backup tertinggal, robots.txt, dan directory listing.</p>
-                    <div class="mt-auto"><a href="simulasi/config.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a06 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a06">Belum Selesai</span>
-                    <div class="icon-box icon-a06"><i class="fas fa-cubes"></i></div>
-                    <h5 class="fw-bold">A06: Outdated Components</h5>
-                    <p class="text-muted small mb-3">Eksploitasi CVE, Upload Shell, dan RCE.</p>
-                    <div class="mt-auto"><a href="simulasi/components.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a07 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a07">Belum Selesai</span>
-                    <div class="icon-box icon-a07"><i class="fas fa-user-lock"></i></div>
-                    <h5 class="fw-bold">A07: Auth Failures</h5>
-                    <p class="text-muted small mb-3">Brute Force Attack, User Enum, dan PIN Cracking.</p>
-                    <div class="mt-auto"><a href="simulasi/auth.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a08 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a08">Belum Selesai</span>
-                    <div class="icon-box icon-a08"><i class="fas fa-fingerprint"></i></div>
-                    <h5 class="fw-bold">A08: Integrity Failures</h5>
-                    <p class="text-muted small mb-3">Insecure Deserialization dan manipulasi Cookie.</p>
-                    <div class="mt-auto"><a href="simulasi/integrity.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a09 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a09">Belum Selesai</span>
-                    <div class="icon-box icon-a09"><i class="fas fa-binoculars"></i></div>
-                    <h5 class="fw-bold">A09: Logging Failures</h5>
-                    <p class="text-muted small mb-3">Analisis Log, Deteksi Serangan, dan Firewall.</p>
-                    <div class="mt-auto"><a href="simulasi/logging.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a10 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a10">Belum Selesai</span>
-                    <div class="icon-box icon-a10"><i class="fas fa-network-wired"></i></div>
-                    <h5 class="fw-bold">A10: SSRF</h5>
-                    <p class="text-muted small mb-3">Port Scanning internal dan Bypass WAF.</p>
-                    <div class="mt-auto"><a href="simulasi/ssrf.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card card-module card-a11 p-4 h-100">
-                    <span class="badge bg-secondary status-badge" id="badge-a11">Belum Selesai</span>
-                    <div class="icon-box icon-a11"><i class="fas fa-code"></i></div>
-                    <h5 class="fw-bold">A11: Advanced XSS</h5>
-                    <p class="text-muted small mb-3">Reflected, Stored, DOM XSS, dan Cookie Stealing.</p>
-                    <div class="mt-auto"><a href="simulasi/xss.html" class="btn btn-outline-primary btn-sm w-100 btn-module">Mulai Lab <i class="fas fa-arrow-right ms-1"></i></a></div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-8">
-                <div class="card card-module p-5 h-100 bg-light border text-center d-flex justify-content-center align-items-center" id="certCard" style="border-style: dashed !important; border-width: 2px;">
-                    <div>
-                        <i class="fas fa-certificate fa-4x text-muted mb-3" id="certIcon"></i>
-                        <h4 class="fw-bold" id="certTitle">Sertifikat Kelulusan</h4>
-                        <p class="text-muted" id="certDesc">Selesaikan 11 Modul (100%) untuk membuka sertifikat.</p>
-                        <button id="btnClaimCert" onclick="claimCertificate()" class="btn btn-warning rounded-pill px-4 fw-bold mt-2" disabled>
-                            <i class="fas fa-lock me-2"></i>Terkunci
-                        </button>
+            <div class="col-md-6 col-lg-3">
+                <div class="menu-card card-path h-100">
+                    <div class="card-body">
+                        <div class="icon-circle"><i class="fas fa-layer-group"></i></div>
+                        <h4 class="card-title">Learning Path</h4>
+                        <p class="card-text">Kurikulum terstruktur dari level Beginner, Intermediate, hingga Advanced agar belajar lebih terarah.</p>
+                        <a href="learning-path/index.html" class="arrow-link text-warning stretched-link">
+                            Ikuti Jalur <i class="fas fa-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -245,150 +157,30 @@
         </div>
     </section>
 
-    <footer class="bg-dark text-white py-4 mt-5">
+    <section class="stats-section text-center">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0 stat-item">
+                    <h3>11+</h3>
+                    <p>Modul Simulasi</p>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0 stat-item">
+                    <h3>4</h3>
+                    <p>Jalur Karir Utama</p>
+                </div>
+                <div class="col-md-4 stat-item">
+                    <h3>100%</h3>
+                    <p>Gratis & Terbuka</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-white py-4 mt-auto">
         <div class="container text-center">
-            <small class="opacity-75">&copy; 2025 Saeful Bahri Edu - Cybersecurity Awareness Initiative.</small>
+            <small class="opacity-50">&copy; 2025 Cybersecurity Learning Hub. Created by Saeful Bahri.</small>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const modules = [
-            'sim_a01', 'sim_a02', 'sim_a03', 'sim_a04', 'sim_a05',
-            'sim_a06', 'sim_a07', 'sim_a08', 'sim_a09', 'sim_a10', 'sim_a11'
-        ];
-
-        document.addEventListener('DOMContentLoaded', loadProgress);
-
-        function loadProgress() {
-            let completedCount = 0;
-
-            modules.forEach(key => {
-                const status = localStorage.getItem(key);
-                const badgeId = 'badge-' + key.replace('sim_', '');
-                const badgeEl = document.getElementById(badgeId);
-
-                if (status === 'done') {
-                    completedCount++;
-                    if(badgeEl) {
-                        badgeEl.className = 'badge bg-success status-badge';
-                        badgeEl.innerHTML = '<i class="fas fa-check me-1"></i> Selesai';
-                        badgeEl.closest('.card-module').classList.add('border', 'border-success');
-                    }
-                }
-            });
-
-            // Update Progress Bar
-            const percent = Math.floor((completedCount / modules.length) * 100);
-            document.getElementById('mainProgressBar').style.width = percent + '%';
-            document.getElementById('progressText').innerText = percent;
-
-            // UNLOCK CERTIFICATE
-            if (completedCount === modules.length) {
-                const btn = document.getElementById('btnClaimCert');
-                const card = document.getElementById('certCard');
-                const icon = document.getElementById('certIcon');
-                
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-file-signature me-2"></i>Terbitkan Sertifikat';
-                btn.classList.remove('btn-secondary'); 
-                btn.classList.add('btn-warning', 'text-dark');
-                
-                card.classList.remove('bg-light');
-                card.classList.add('cert-unlocked');
-                
-                icon.classList.remove('text-muted');
-                icon.classList.add('text-warning');
-                document.getElementById('certDesc').innerText = "Selamat! Anda telah menyelesaikan seluruh kurikulum.";
-            }
-        }
-
-        function resetProgress() {
-            if(confirm('Apakah Anda yakin ingin mereset semua progres belajar?')) {
-                modules.forEach(key => localStorage.removeItem(key));
-                location.reload();
-            }
-        }
-
-        // --- GENERATOR SERTIFIKAT PROFESIONAL & SMART ID ---
-        function claimCertificate() {
-            const name = prompt("Masukkan Nama Lengkap untuk Sertifikat (Beserta Gelar):");
-            
-            if(name && name.trim() !== "") {
-                const date = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                
-                // Smart ID Logic (SEC-RAND-Base64Name)
-                const randomPrefix = Math.floor(1000 + Math.random() * 9000);
-                const encodedName = btoa(name).replace(/=/g, ''); 
-                const certID = `SEC-${randomPrefix}-${encodedName}`;
-
-                // URL Verify (Arahkan ke verify.html Anda)
-                const verifyUrl = `https://saefulbahri.web.id/edu/verify.html?id=${certID}`;
-                
-                // QR Code API
-                const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyUrl)}`;
-
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Certificate - ${name}</title>
-                        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Pinyon+Script&family=Lato:wght@300;400&display=swap" rel="stylesheet">
-                        <style>
-                            @page { size: landscape; margin: 0; }
-                            body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #555; -webkit-print-color-adjust: exact; }
-                            .cert-frame { width: 1123px; height: 794px; background-color: #fff; background-image: radial-gradient(circle at 50% 50%, #fff 40%, #fdfbf7 100%); position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; }
-                            .border-pattern { position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px; border: 2px solid #1e3a8a; outline: 5px double #d4af37; outline-offset: 5px; }
-                            .corner { position: absolute; width: 60px; height: 60px; border-top: 8px double #1e3a8a; border-left: 8px double #1e3a8a; }
-                            .tl { top: 25px; left: 25px; } .tr { top: 25px; right: 25px; transform: rotate(90deg); } .br { bottom: 25px; right: 25px; transform: rotate(180deg); } .bl { bottom: 25px; left: 25px; transform: rotate(270deg); }
-                            .content { position: relative; z-index: 10; text-align: center; padding-top: 80px; color: #1e3a8a; }
-                            .header-small { font-family: 'Lato', sans-serif; letter-spacing: 4px; font-size: 14px; text-transform: uppercase; color: #555; }
-                            .main-title { font-family: 'Cinzel', serif; font-size: 64px; font-weight: 700; margin: 10px 0; color: #1e3a8a; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
-                            .sub-title { font-family: 'Cinzel', serif; font-size: 24px; margin-bottom: 40px; color: #d4af37; }
-                            .name { font-family: 'Pinyon Script', cursive; font-size: 90px; color: #000; margin: 20px 0; line-height: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-                            .divider { width: 400px; height: 2px; background: #d4af37; margin: 0 auto 30px; }
-                            .desc { font-family: 'Lato', sans-serif; font-size: 18px; line-height: 1.6; color: #444; max-width: 800px; margin: 0 auto; }
-                            .footer { position: absolute; bottom: 80px; left: 100px; right: 100px; display: flex; justify-content: space-between; align-items: center; }
-                            .signature-block { text-align: center; }
-                            .sig-img { font-family: 'Pinyon Script', cursive; font-size: 36px; color: #1e3a8a; margin-bottom: 5px; }
-                            .sig-line { width: 250px; border-top: 1px solid #999; margin: 0 auto; }
-                            .sig-title { font-family: 'Cinzel', serif; font-size: 12px; font-weight: bold; margin-top: 5px; }
-                            .badge-gold { width: 120px; height: 120px; background: #d4af37; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-family: 'Cinzel', serif; font-weight: bold; font-size: 14px; text-align: center; box-shadow: 0 0 0 5px #fff, 0 0 0 8px #d4af37; background-image: linear-gradient(135deg, #fce38a 0%, #f38181 100%); }
-                            .qr-block { text-align: center; }
-                            .cert-id { font-family: 'Lato', monospace; font-size: 10px; margin-top: 5px; color: #555; }
-                            @media print { body { background: none; } .cert-frame { box-shadow: none; margin: 0; page-break-after: always; } }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="cert-frame">
-                            <div class="border-pattern"></div>
-                            <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-                            <div class="content">
-                                <div class="header-small">Saeful Bahri Education Platform</div>
-                                <div class="main-title">Certificate of Completion</div>
-                                <div class="sub-title">IS PROUDLY PRESENTED TO</div>
-                                <div class="name">${name}</div>
-                                <div class="divider"></div>
-                                <div class="desc">
-                                    For successfully completing the <strong>Web Application Security (OWASP Top 10)</strong> curriculum.
-                                    The holder of this certificate has demonstrated proficiency in identifying, exploiting, and mitigating critical web vulnerabilities.
-                                </div>
-                            </div>
-                            <div class="footer">
-                                <div class="signature-block"><div class="sig-img">${date}</div><div class="sig-line"></div><div class="sig-title">ISSUED DATE</div></div>
-                                <div class="badge-gold">VERIFIED<br>SECURE<br>SKILL</div>
-                                <div class="qr-block"><img src="${qrApi}" width="90" height="90"><div class="cert-id">ID: ${certID}</div></div>
-                                <div class="signature-block"><div class="sig-img">Saeful Bahri</div><div class="sig-line"></div><div class="sig-title">LEAD INSTRUCTOR</div></div>
-                            </div>
-                        </div>
-                        <script>setTimeout(() => { window.print(); }, 1000);<\/script>
-                    </body>
-                    </html>
-                `);
-                printWindow.document.close();
-            }
-        }
-    </script>
 </body>
 </html>
