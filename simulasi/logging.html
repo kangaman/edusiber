@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab A09: Logging & Monitoring</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = e => { if(e.keyCode == 123 || (e.ctrlKey && e.keyCode == 85)) return false; };
+        });
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; height: 100vh; overflow: hidden; color: #e2e8f0; }
+        .lab-wrapper { display: flex; height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 380px; background: #1e293b; border-right: 1px solid #334155; display: flex; flex-direction: column; z-index: 10; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar-header { padding: 20px; background: #020617; border-bottom: 1px solid #334155; }
+        .sidebar-content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .level-badge { font-size: 0.75rem; text-transform: uppercase; background: #0f766e; border: 1px solid #14b8a6; color: #ccfbf1; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; display: inline-block; }
+        .mission-card { background: #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #14b8a6; animation: fadeIn 0.5s; }
+        .hint-box { background: #451a03; border: 1px solid #f59e0b; color: #fcd34d; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 0.9rem; border-left: 4px solid #f59e0b; }
+        .code-snippet { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: #000; padding: 15px; border-radius: 6px; border: 1px solid #334155; margin-top: 10px; display: none; color: #a5b4fc; }
+
+        /* DASHBOARD GRID */
+        .main-area { flex-grow: 1; padding: 20px; background: #0f172a; display: grid; grid-template-rows: auto 1fr; gap: 15px; }
+        
+        /* STATS */
+        .stats-row { display: flex; gap: 15px; height: 90px; }
+        .stat-card { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 15px; display: flex; align-items: center; justify-content: space-between; }
+        .stat-val { font-size: 1.8rem; font-weight: bold; color: #fff; }
+        .stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+        
+        /* PANELS CONTAINER */
+        .content-stack { position: relative; border: 1px solid #334155; border-radius: 8px; overflow: hidden; background: #020617; }
+        .panel { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; background: #020617; }
+        .panel.active { display: flex; animation: fadeIn 0.3s; }
+        
+        /* LOG TABLE */
+        .panel-header { background: #1e293b; padding: 10px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .log-container { flex-grow: 1; overflow-y: auto; padding: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+        .log-table { width: 100%; border-collapse: collapse; }
+        .log-table th { background: #0f172a; color: #94a3b8; text-align: left; padding: 10px; position: sticky; top: 0; border-bottom: 1px solid #334155; z-index: 5; }
+        .log-table td { padding: 6px 10px; border-bottom: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }
+        .log-row:hover { background: #1e293b; }
+        
+        .log-crit { color: #f43f5e; font-weight: bold; }
+        .log-warn { color: #f59e0b; }
+        .log-info { color: #3b82f6; }
+        .log-blocked { color: #64748b; text-decoration: line-through; }
+
+        /* TOOLS (CONFIG/FIREWALL) */
+        .tool-body { padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+        .tool-section { background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #334155; }
+        .switch-group { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #1e293b; border-radius: 6px; margin-bottom: 10px; border: 1px solid #334155; }
+        .toggle-switch { position: relative; width: 40px; height: 20px; background: #475569; border-radius: 20px; cursor: pointer; transition: 0.3s; }
+        .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: 0.3s; }
+        .toggle-switch.on { background: #10b981; }
+        .toggle-switch.on::after { left: 22px; }
+
+        /* GEO MAP MOCKUP */
+        .map-mockup { background: #0f172a; height: 100%; display: flex; align-items: center; justify-content: center; color: #334155; flex-direction: column; }
+        .map-dot { width: 15px; height: 15px; background: #f43f5e; border-radius: 50%; box-shadow: 0 0 10px #f43f5e; animation: pulse 1s infinite; margin-bottom: 10px; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="lab-wrapper">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 fw-bold text-info"><i class="fas fa-shield-alt me-2"></i>SOC Dashboard</h5>
+            <small class="text-secondary">Level: <span id="levelIndicator">1/10</span></small>
+        </div>
+        <div class="sidebar-content">
+            <div id="missionDisplay"></div>
+            <div id="actionArea" class="mt-3"></div>
+
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button onclick="toggleHint()" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                    <i class="far fa-lightbulb me-2"></i>Bantuan / Hint
+                </button>
+                <div id="hintBox" class="hint-box"></div>
+            </div>
+
+            <div id="remediationSection" style="display: none;">
+                <hr class="border-secondary my-4">
+                <h6 class="text-success fw-bold">Incident Report</h6>
+                <div class="bg-black p-3 rounded border border-success small font-monospace text-light mb-3">
+                    Status: <span class="text-success">CONTAINED</span><br>
+                    Attacker: 10.55.1.99<br>
+                    Action: IP Blocked<br>
+                    Lesson: Always enable logs!
+                </div>
+                <button onclick="finishLab()" class="btn btn-success w-100 fw-bold">Selesai</button>
+            </div>
+        </div>
+        <div class="p-3 bg-black text-center border-top border-secondary">
+            <a href="../index.html" class="text-white-50 text-decoration-none small">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="main-area">
+        
+        <div class="stats-row">
+            <div class="stat-card">
+                <div><div class="stat-val" id="statEvents">0</div><div class="stat-label">Total Logs</div></div>
+                <i class="fas fa-list fa-2x text-secondary"></i>
+            </div>
+            <div class="stat-card">
+                <div><div class="stat-val text-danger" id="statThreats">0</div><div class="stat-label">Threats Detected</div></div>
+                <i class="fas fa-bug fa-2x text-danger"></i>
+            </div>
+            <div class="stat-card">
+                <div><div class="stat-val text-success" id="statStatus">MONITORING</div><div class="stat-label">Firewall Status</div></div>
+                <i class="fas fa-fire fa-2x text-success"></i>
+            </div>
+        </div>
+
+        <div class="content-stack">
+            
+            <div id="panelLogs" class="panel active">
+                <div class="panel-header">
+                    <span class="fw-bold text-info"><i class="fas fa-search me-2"></i>SIEM LOG VIEWER</span>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="logFilter" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 150px;" placeholder="Filter IP / Msg...">
+                        <button class="btn btn-sm btn-primary" onclick="applyFilter()">Filter</button>
+                    </div>
+                </div>
+                <div class="log-container">
+                    <table class="log-table">
+                        <thead><tr><th>TIME</th><th>LEVEL</th><th>SOURCE IP</th><th>MESSAGE</th><th>STATUS</th></tr></thead>
+                        <tbody id="logBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panelConfig" class="panel">
+                <div class="panel-header"><span class="fw-bold text-warning"><i class="fas fa-cogs me-2"></i>SYSTEM CONFIG</span></div>
+                <div class="tool-body">
+                    <div class="tool-section">
+                        <h6 class="text-white mb-3">Logging Policy</h6>
+                        <div class="switch-group"><span>Error Logging</span><div id="toggleError" class="toggle-switch" onclick="toggleConfig('error')"></div></div>
+                        <div class="switch-group"><span>Auth Monitoring</span><div id="toggleAuth" class="toggle-switch" onclick="toggleConfig('auth')"></div></div>
+                        <div class="switch-group"><span>Data Access Log</span><div id="toggleData" class="toggle-switch" onclick="toggleConfig('data')"></div></div>
+                    </div>
+                    <div class="tool-section border-start border-secondary">
+                        <h6 class="text-white mb-3">Apply Changes</h6>
+                        <p class="small text-secondary">Status saat ini: <span id="configState" class="text-danger">UNSECURE</span></p>
+                        <button onclick="saveConfig()" class="btn btn-primary w-100">Save & Restart Services</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panelGeo" class="panel">
+                <div class="panel-header"><span class="fw-bold text-info"><i class="fas fa-globe me-2"></i>THREAT INTELLIGENCE</span></div>
+                <div class="tool-body">
+                    <div class="tool-section">
+                        <label class="small text-secondary mb-2">IP Address Lookup:</label>
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="text" id="geoInput" class="form-control bg-dark text-white" placeholder="x.x.x.x">
+                            <button onclick="runGeoIP()" class="btn btn-info">Trace</button>
+                        </div>
+                        <div id="geoResult" class="p-3 bg-black rounded font-monospace small text-success" style="min-height: 100px;">Waiting input...</div>
+                    </div>
+                    <div class="map-mockup border rounded">
+                        <div id="mapDot" class="map-dot" style="display:none;"></div>
+                        <span class="small text-secondary mt-2">GLOBAL MAP VIEW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="panelFirewall" class="panel">
+                <div class="panel-header"><span class="fw-bold text-danger"><i class="fas fa-fire-alt me-2"></i>WAF / FIREWALL</span></div>
+                <div class="tool-body">
+                    <div class="tool-section">
+                        <h6 class="text-danger mb-3">Block Malicious IP</h6>
+                        <label class="small text-secondary">Target IP:</label>
+                        <input type="text" id="fwInput" class="form-control bg-dark text-white mb-3" placeholder="x.x.x.x">
+                        <label class="small text-secondary">Reason:</label>
+                        <select class="form-select bg-dark text-white mb-3"><option>Brute Force Attempt</option><option>Data Exfiltration</option></select>
+                        <button onclick="addFirewallRule()" class="btn btn-danger w-100 fw-bold">BLOCK IP ADDRESS</button>
+                    </div>
+                    <div class="tool-section">
+                        <h6 class="text-white mb-3">Active Rules</h6>
+                        <ul id="fwRules" class="list-group list-group-flush small bg-black rounded p-2">
+                            <li class="list-group-item bg-black text-secondary">No active rules.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- STATE ---
+    let level = 1;
+    let config = { error: false, auth: false, data: false };
+    let attackerIP = "10.55.1.99";
+    let isBlocked = false;
+    let logInterval;
+
+    const missions = [
+        {},
+        // STAGE 1-3: BASIC LOGGING
+        { badge: "Tahap 1: Initial Check", title: "Audit Log Kosong", desc: "Ada laporan insiden, tapi log kosong. Ini adalah 'Logging Failure'.<br>Buka panel konfigurasi untuk memperbaikinya.", hint: "Klik tombol 'System Config'.", action: `<button class="btn btn-warning w-100 btn-sm" onclick="switchPanel('panelConfig')">Buka System Config</button>` },
+        { badge: "Tahap 2: Re-Configuration", title: "Aktifkan Logging", desc: "Nyalakan semua sensor logging (Error, Auth, Data) agar kita bisa melihat apa yang terjadi.", hint: "Aktifkan 3 switch lalu klik Save.", action: "" },
+        { badge: "Tahap 3: Detection", title: "Deteksi IP", desc: "Logging aktif. Kembali ke SIEM Viewer dan tunggu serangan muncul. Identifikasi IP yang melakukan banyak error.", hint: "Tunggu log merah. IP sumbernya adalah target.", action: `<button class="btn btn-info w-100 btn-sm" onclick="switchPanel('panelLogs')">Buka Log Viewer</button><div class="mt-2"><input id="ipGuess" class="form-control form-control-sm bg-dark text-white" placeholder="Masukkan IP..."><button onclick="checkIP()" class="btn btn-sm btn-danger w-100 mt-1">Lapor IP</button></div>` },
+        
+        // STAGE 4-7: ADVANCED ANALYSIS
+        { badge: "Tahap 4: Deep Analysis", title: "Filter Aktivitas", desc: "IP Penyerang: <strong>10.55.1.99</strong>.<br>Kita perlu tahu apakah dia berhasil masuk. Filter log khusus untuk IP tersebut.", hint: "Ketik IP di kolom Filter atas, lalu klik tombol Filter.", action: "" },
+        { badge: "Tahap 5: Damage Assessment", title: "Menemukan Kebocoran", desc: "Lihat log yang difilter. Setelah banyak gagal (403), ada satu log sukses (200 OK) yang mengakses file sensitif.<br>Apa nama file yang dicuri?", hint: "Cari log berwarna biru/putih dengan status 200 OK. Masukkan nama file (contoh: data.zip).", action: `<input id="fileGuess" class="form-control form-control-sm bg-dark text-white" placeholder="Nama file..."><button onclick="checkFile()" class="btn btn-sm btn-warning w-100 mt-1">Verifikasi File</button>` },
+        { badge: "Tahap 6: Intelligence", title: "GeoIP Tracking", desc: "File <code>passwords.db</code> dicuri! Siapa orang ini?<br>Gunakan alat Threat Intel untuk melacak lokasi IP penyerang.", hint: "Buka panel Threat Intel, masukkan IP 10.55.1.99", action: `<button class="btn btn-primary w-100 btn-sm" onclick="switchPanel('panelGeo')">Buka Threat Intel</button>` },
+        
+        // STAGE 8-10: RESPONSE
+        { badge: "Tahap 7: Containment", title: "Blokir Akses", desc: "Lokasi: <strong>Unknown Proxy</strong>. Kita harus memutus aksesnya sekarang juga.<br>Buka Firewall dan blokir IP tersebut.", hint: "Buka panel Firewall, masukkan IP, klik Block.", action: `<button class="btn btn-danger w-100 btn-sm" onclick="switchPanel('panelFirewall')">Buka Firewall</button>` },
+        { badge: "Tahap 8: Verification", title: "Verifikasi Blokir", desc: "Aturan Firewall aktif. Kembali ke Log Viewer.<br>Pastikan log dari IP tersebut sekarang statusnya <strong>BLOCKED</strong> (dicoret).", hint: "Cek Log Viewer. Jika log baru berwarna abu-abu, berarti sukses.", action: `<button class="btn btn-info w-100 btn-sm" onclick="switchPanel('panelLogs')">Cek Log Viewer</button><button class="btn btn-success w-100 btn-sm mt-2" onclick="finalCheck()">Konfirmasi Terblokir</button>` },
+        
+        { badge: "Mission Complete", title: "Insiden Ditangani", desc: "Kerja bagus, Analyst! Anda mendeteksi, menganalisis, dan memblokir ancaman.", hint: "Selesai.", action: "" }
+    ];
+
+    function renderMission() {
+        if(level > 9) return;
+        const m = missions[level];
+        document.getElementById('levelIndicator').innerText = level + "/8";
+        document.getElementById('missionDisplay').innerHTML = `<span class="level-badge">${m.badge}</span><div class="mission-card"><h5 class="fw-bold mb-3 text-white">${m.title}</h5><p class="small text-light opacity-75">${m.desc}</p></div>`;
+        document.getElementById('actionArea').innerHTML = m.action || "";
+        document.getElementById('hintBox').style.display = 'none';
+        document.getElementById('hintBox').innerHTML = `<i class="fas fa-info-circle me-2"></i>${m.hint}`;
+    }
+
+    function toggleHint() { const box = document.getElementById('hintBox'); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
+    
+    function switchPanel(id) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // --- LOG GENERATOR ---
+    function addLog(levelType, src, msg, status) {
+        const tbody = document.getElementById('logBody');
+        const row = document.createElement('tr');
+        row.className = 'log-row';
+        
+        // Simulating Blocking
+        if(isBlocked && src === attackerIP) {
+            status = "BLOCKED";
+            row.classList.add('log-blocked');
+        }
+
+        let color = 'text-light';
+        if(levelType === 'CRIT') color = 'log-crit';
+        else if(levelType === 'WARN') color = 'log-warn';
+        else if(levelType === 'INFO') color = 'log-info';
+
+        row.innerHTML = `<td class="text-secondary">${new Date().toLocaleTimeString()}</td><td class="${color}">${levelType}</td><td>${src}</td><td>${msg}</td><td>${status}</td>`;
+        tbody.prepend(row);
+        if(tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+
+        // Stats
+        document.getElementById('statEvents').innerText = parseInt(document.getElementById('statEvents').innerText)+1;
+        if(levelType === 'CRIT') document.getElementById('statThreats').innerText = parseInt(document.getElementById('statThreats').innerText)+1;
+    }
+
+    function startTraffic() {
+        if(logInterval) clearInterval(logInterval);
+        logInterval = setInterval(() => {
+            if(Math.random() > 0.7) {
+                // Normal traffic
+                addLog('INFO', '192.168.1.'+Math.floor(Math.random()*50), 'Page View /home', '200 OK');
+            }
+            if(Math.random() > 0.5) {
+                // ATTACK TRAFFIC
+                if(isBlocked) {
+                    addLog('WARN', attackerIP, 'Connection Attempt', 'DROP');
+                } else {
+                    addLog('CRIT', attackerIP, 'Failed Login (admin)', '403 Forbidden');
+                }
+            }
+        }, 1500);
+    }
+
+    // --- LEVEL LOGIC ---
+
+    function toggleConfig(key) {
+        config[key] = !config[key];
+        document.getElementById('toggle'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on');
+    }
+
+    function saveConfig() {
+        if(config.error && config.auth && config.data) {
+            document.getElementById('configState').className = "text-success";
+            document.getElementById('configState').innerText = "SECURE (LOGGING ON)";
+            level = 3; renderMission();
+            switchPanel('panelLogs');
+            startTraffic();
+            // Inject specific evidence for later levels
+            setTimeout(() => {
+                addLog('WARN', attackerIP, 'Access /admin/db_backup', '200 OK');
+                addLog('INFO', attackerIP, 'Download passwords.db', '200 OK');
+            }, 8000);
+        } else {
+            alert("Aktifkan semua opsi logging!");
+        }
+    }
+
+    function checkIP() {
+        if(document.getElementById('ipGuess').value.trim() === attackerIP) {
+            alert("Target Teridentifikasi!");
+            level = 4; renderMission();
+        } else alert("IP Salah. Cari di log (Source IP).");
+    }
+
+    function applyFilter() {
+        const filter = document.getElementById('logFilter').value.trim();
+        const rows = document.querySelectorAll('.log-row');
+        rows.forEach(r => {
+            if(r.innerText.includes(filter)) r.style.display = '';
+            else r.style.display = 'none';
+        });
+        if(level === 4 && filter === attackerIP) {
+            level = 5; renderMission();
+        }
+    }
+
+    function checkFile() {
+        if(document.getElementById('fileGuess').value.trim() === "passwords.db") {
+            alert("Benar! Data password dicuri.");
+            level = 6; renderMission();
+        } else alert("Salah. Cari log dengan status 200 OK dari IP penyerang.");
+    }
+
+    function runGeoIP() {
+        if(document.getElementById('geoInput').value.trim() === attackerIP) {
+            document.getElementById('geoResult').innerText = "IP: 10.55.1.99\nCountry: Unknown (Proxy)\nISP: HackerNet\nThreat Score: HIGH";
+            document.getElementById('mapDot').style.display = 'block';
+            level = 7; renderMission();
+        }
+    }
+
+    function addFirewallRule() {
+        if(document.getElementById('fwInput').value.trim() === attackerIP) {
+            isBlocked = true;
+            document.getElementById('fwRules').innerHTML = `<li class="list-group-item bg-danger text-white"><i class="fas fa-ban me-2"></i>DENY ${attackerIP} (Any)</li>`;
+            document.getElementById('statStatus').innerText = "PROTECTED";
+            alert("Rule Added! IP Blocked.");
+            level = 8; renderMission();
+        }
+    }
+
+    function finalCheck() {
+        if(isBlocked) {
+            level = 9; renderMission();
+            document.getElementById('remediationSection').style.display = 'block';
+        }
+    }
+
+    function finishLab() { localStorage.setItem('sim_a09', 'done'); window.location.href = '../index.html'; }
+
+    // Init
+    renderMission();
+</script>
+</body>
+</html>
